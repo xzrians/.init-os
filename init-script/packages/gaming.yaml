@@ -1,0 +1,17 @@
+# Gaming Packages Configuration
+---
+packages:
+  gaming_platforms:
+    - steam
+    - epicgameslauncher
+    - origin
+  
+  gaming_communication:
+    - discord
+  
+  recording_and_streaming:
+    - obs-studio
+  
+  game_optimization:
+  
+  controllers:

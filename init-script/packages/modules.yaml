@@ -1,0 +1,18 @@
+# PowerShell Modules Configuration
+# These modules will be installed from PowerShell Gallery
+---
+modules:
+  code_editing_and_navigation:
+    - PSReadLine
+    - Terminal-Icons
+    - posh-git
+  
+  # Uncomment modules below to install
+  # additional_modules:
+  #   - PSScriptAnalyzer
+  #   - PowerShellGet
+  #   - Az
+  #   - AWSPowerShell.NetCore
+  #   - ImportExcel
+  #   - SqlServer
+  #   - Microsoft.Graph

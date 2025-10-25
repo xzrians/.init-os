@@ -77,12 +77,25 @@ function Install-Packages {
     )
     
     Write-ColorOutput "`nInstalling $ProfileName packages..." -Type Header
+    
+    # Check if package list is empty
+    if ($null -eq $Packages -or $Packages.Count -eq 0) {
+        Write-ColorOutput "⚠ No packages to install for $ProfileName profile" -Type Warning
+        Write-ColorOutput "This is normal if the package file is empty or all packages are commented out" -Type Info
+        return
+    }
+    
     Write-ColorOutput "Packages to install: $($Packages.Count)" -Type Info
     
     $successCount = 0
     $failCount = 0
     
     foreach ($package in $Packages) {
+        # Skip empty package names
+        if ([string]::IsNullOrWhiteSpace($package)) {
+            continue
+        }
+        
         Write-ColorOutput "`nInstalling: $package" -Type Info
         
         try {
@@ -125,35 +138,67 @@ function Get-PackagesFromFile {
     
     Write-ColorOutput "Loading packages from: packages\$FileName" -Type Info
     
-    # Read file and filter out comments and empty lines
-    $packages = Get-Content -Path $filePath | 
-                Where-Object { $_ -notmatch '^\s*#' -and $_ -notmatch '^\s*$' } |
-                ForEach-Object { $_.Trim() }
+    # Read YAML file and extract packages
+    $content = Get-Content -Path $filePath -Raw -ErrorAction SilentlyContinue
+    
+    # Handle empty or null content
+    if ([string]::IsNullOrWhiteSpace($content)) {
+        Write-ColorOutput "⚠ Package file is empty: $FileName" -Type Warning
+        return @()
+    }
+    
+    $packages = @()
+    
+    # Simple YAML parser for our package lists
+    $lines = $content -split "`n"
+    foreach ($line in $lines) {
+        $trimmed = $line.Trim()
+        # Skip comments, empty lines, and YAML keys
+        if ($trimmed -match '^#' -or $trimmed -eq '' -or $trimmed -eq '---' -or 
+            $trimmed -match '^\w+:$' -or $trimmed -match '^packages:$' -or $trimmed -match '^modules:$') {
+            continue
+        }
+        # Extract package names from list items (- packagename)
+        if ($trimmed -match '^\s*-\s+(.+)$') {
+            $packageName = $matches[1].Trim()
+            # Skip empty package names
+            if (-not [string]::IsNullOrWhiteSpace($packageName)) {
+                $packages += $packageName
+            }
+        }
+    }
+    
+    # Notify if no packages found
+    if ($packages.Count -eq 0) {
+        Write-ColorOutput "⚠ No packages found in: $FileName (this is OK if intentional)" -Type Warning
+    } else {
+        Write-ColorOutput "Found $($packages.Count) package(s) in $FileName" -Type Success
+    }
     
     return $packages
 }
 
 function Get-BasicPackages {
-    return Get-PackagesFromFile -FileName "basic.txt"
+    return Get-PackagesFromFile -FileName "basic.yaml"
 }
 
 function Get-DeveloperPackages {
     $basicPackages = Get-BasicPackages
-    $devPackages = Get-PackagesFromFile -FileName "developer.txt"
+    $devPackages = Get-PackagesFromFile -FileName "developer.yaml"
     
     return $basicPackages + $devPackages
 }
 
 function Get-GamingPackages {
     $basicPackages = Get-BasicPackages
-    $gamingPackages = Get-PackagesFromFile -FileName "gaming.txt"
+    $gamingPackages = Get-PackagesFromFile -FileName "gaming.yaml"
     
     return $basicPackages + $gamingPackages
 }
 
 function Get-PowerShellPackages {
     $basicPackages = Get-BasicPackages
-    $pwshPackages = Get-PackagesFromFile -FileName "powershell.txt"
+    $pwshPackages = Get-PackagesFromFile -FileName "powershell.yaml"
     
     return $basicPackages + $pwshPackages
 }
@@ -249,20 +294,60 @@ function Update-PowerShellProfile {
     # Install PowerShell modules from file
     Write-ColorOutput "`nInstalling/Updating PowerShell modules..." -Type Info
     
-    $modulesFile = Join-Path -Path $packagesFolder -ChildPath "modules.txt"
+    $modulesFile = Join-Path -Path $packagesFolder -ChildPath "modules.yaml"
     
     if (Test-Path $modulesFile) {
-        # Read modules from file
-        $modules = Get-Content -Path $modulesFile | 
-                   Where-Object { $_ -notmatch '^\s*#' -and $_ -notmatch '^\s*$' } |
-                   ForEach-Object { $_.Trim() }
+        # Read modules from YAML file
+        $moduleContent = Get-Content -Path $modulesFile -Raw -ErrorAction SilentlyContinue
+        $modules = @()
         
-        Write-ColorOutput "Found $($modules.Count) modules to install" -Type Info
+        # Handle empty content
+        if (-not [string]::IsNullOrWhiteSpace($moduleContent)) {
+            # Parse YAML for module names
+            $lines = $moduleContent -split "`n"
+            foreach ($line in $lines) {
+                $trimmed = $line.Trim()
+                # Extract module names from list items (- modulename)
+                if ($trimmed -match '^\s*-\s+(.+)$') {
+                    $moduleName = $matches[1].Trim()
+                    # Skip empty module names
+                    if (-not [string]::IsNullOrWhiteSpace($moduleName)) {
+                        $modules += $moduleName
+                    }
+                }
+            }
+        }
         
-        foreach ($moduleName in $modules) {
+        if ($modules.Count -eq 0) {
+            Write-ColorOutput "⚠ No modules found in modules.yaml (this is OK if intentional)" -Type Warning
+            Write-ColorOutput "Skipping module installation..." -Type Info
+        } else {
+            Write-ColorOutput "Found $($modules.Count) module(s) to install" -Type Info
+            
+            foreach ($moduleName in $modules) {
+                try {
+                    if (-not (Get-Module -ListAvailable -Name $moduleName)) {
+                        Write-ColorOutput "Installing: $moduleName" -Type Info
+                        Install-Module -Name $moduleName -Force -AllowClobber -Scope CurrentUser -ErrorAction Stop
+                        Write-ColorOutput "✓ $moduleName installed" -Type Success
+                    } else {
+                        Write-ColorOutput "✓ $moduleName already installed" -Type Success
+                    }
+                } catch {
+                    Write-ColorOutput "✗ Failed to install $moduleName : $($_.Exception.Message)" -Type Warning
+                }
+            }
+        }
+    } else {
+        Write-ColorOutput "✗ Modules file not found: $modulesFile" -Type Warning
+        Write-ColorOutput "Installing default modules..." -Type Info
+        
+        # Fallback to default modules
+        $defaultModules = @('PSReadLine', 'Terminal-Icons', 'posh-git')
+        
+        foreach ($moduleName in $defaultModules) {
             try {
                 if (-not (Get-Module -ListAvailable -Name $moduleName)) {
-                    Write-ColorOutput "Installing: $moduleName" -Type Info
                     Install-Module -Name $moduleName -Force -AllowClobber -Scope CurrentUser -ErrorAction Stop
                     Write-ColorOutput "✓ $moduleName installed" -Type Success
                 } else {
@@ -271,29 +356,6 @@ function Update-PowerShellProfile {
             } catch {
                 Write-ColorOutput "✗ Failed to install $moduleName : $($_.Exception.Message)" -Type Warning
             }
-        }
-    } else {
-        Write-ColorOutput "✗ Modules file not found: $modulesFile" -Type Warning
-        Write-ColorOutput "Installing default modules..." -Type Info
-        
-        # Fallback to default modules
-        try {
-            if (-not (Get-Module -ListAvailable -Name PSReadLine)) {
-                Install-Module -Name PSReadLine -Force -AllowClobber -Scope CurrentUser
-                Write-ColorOutput "✓ PSReadLine installed" -Type Success
-            }
-            
-            if (-not (Get-Module -ListAvailable -Name Terminal-Icons)) {
-                Install-Module -Name Terminal-Icons -Force -AllowClobber -Scope CurrentUser
-                Write-ColorOutput "✓ Terminal-Icons installed" -Type Success
-            }
-            
-            if (-not (Get-Module -ListAvailable -Name posh-git)) {
-                Install-Module -Name posh-git -Force -AllowClobber -Scope CurrentUser
-                Write-ColorOutput "✓ posh-git installed" -Type Success
-            }
-        } catch {
-            Write-ColorOutput "Warning: Some modules failed to install. You can install them manually later." -Type Warning
         }
     }
     
@@ -425,9 +487,12 @@ try {
     # Check for admin privileges
     if (-not (Test-Administrator)) {
         Write-ColorOutput "✗ This script requires Administrator privileges!" -Type Error
-        Write-ColorOutput "Please run PowerShell as Administrator and try again." -Type Warning
-        pause
-        exit 1
+        Write-ColorOutput "Requesting elevation..." -Type Warning
+        
+        # Re-launch the script with elevated privileges
+        $scriptPath = $MyInvocation.MyCommand.Path
+        Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
+        exit
     }
     
     # Install Chocolatey if not present

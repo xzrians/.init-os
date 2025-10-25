@@ -1,6 +1,8 @@
 # Developer Packages
+
 # IDEs & Editors
 vscode
+
 
 # Version Control
 git.install
@@ -8,20 +10,16 @@ github-desktop
 gitkraken
 
 # Development Tools
-nodejs-lts
-python
-dotnet-sdk
-jdk11
+
 
 # Databases
-postgresql
-mongodb
-redis
 
 # Containers & VM
+docker-desktop
 
 # API & Testing
 
 # Build Tools
 
 # Other Dev Tools
+

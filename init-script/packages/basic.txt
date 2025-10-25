@@ -1,6 +1,7 @@
 # Basic Packages
-# Browsers
 
+# Browsers
+chrome
 
 # Communication
 discord

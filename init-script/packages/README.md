@@ -4,60 +4,67 @@ This directory contains package list files that the installation script reads fr
 
 ## 📄 Package Files
 
-- **basic.txt** - Essential everyday applications
-- **developer.txt** - Development tools and environments
-- **gaming.txt** - Gaming platforms and tools
-- **powershell.txt** - PowerShell development tools and terminal setup
-- **modules.txt** - PowerShell modules from PowerShell Gallery
+- **basic.yaml** - Essential everyday applications
+- **developer.yaml** - Development tools and environments
+- **gaming.yaml** - Gaming platforms and tools
+- **powershell.yaml** - PowerShell development tools and terminal setup
+- **modules.yaml** - PowerShell modules from PowerShell Gallery
 - **profile-config.ps1** - PowerShell profile configuration (aliases, functions, Oh My Posh)
-- **windows-terminal-settings.json** - Windows Terminal configuration (default profile, font, theme)
 
 ## ✏️ How to Add/Remove Packages
 
-### Chocolatey Packages (basic.txt, developer.txt, gaming.txt)
+### Chocolatey Packages (basic.yaml, developer.yaml, gaming.yaml, powershell.yaml)
 
 **Add a Package:**
 
-Simply add the package name on a new line in the appropriate file:
+Simply add the package name to the appropriate category in YAML format:
 
-```
-# basic.txt
-googlechrome
-firefox
-brave          # <-- Add new package here
+```yaml
+# basic.yaml
+packages:
+  browsers:
+    - googlechrome
+    - firefox
+    - brave          # <-- Add new package here
 ```
 
 **Remove a Package:**
 
 Either delete the line or comment it out with `#`:
 
-```
-# googlechrome     # <-- Commented out, won't be installed
-firefox
+```yaml
+packages:
+  browsers:
+    # - googlechrome     # <-- Commented out, won't be installed
+    - firefox
 ```
 
-### PowerShell Modules (modules.txt)
+### PowerShell Modules (modules.yaml)
 
 **Add a Module:**
 
 Add the module name from PowerShell Gallery:
 
-```
-# modules.txt
-PSReadLine
-Terminal-Icons
-posh-git
-Az              # <-- Add Azure module
+```yaml
+# modules.yaml
+modules:
+  code_editing_and_navigation:
+    - PSReadLine
+    - Terminal-Icons
+    - posh-git
+    - Az              # <-- Add Azure module
 ```
 
 **Remove a Module:**
 
 Comment it out or delete the line:
 
-```
-# PSReadLine
-Terminal-Icons
-# Az            # <-- Won't be installed
+```yaml
+modules:
+  code_editing_and_navigation:
+    # - PSReadLine
+    - Terminal-Icons
+    # - Az            # <-- Won't be installed
 ```
 
 ### Add Comments
@@ -104,47 +111,54 @@ Find-Module <module-name>
 
 ## 📝 File Format Rules
 
-- One package per line
+- YAML format with proper indentation (2 spaces)
 - Lines starting with `#` are comments (ignored)
 - Empty lines are ignored
-- Whitespace is automatically trimmed
+- Packages are listed under categories with `- packagename` format
 
 ## 💡 Examples
 
-### Valid Chocolatey Entries (basic.txt, developer.txt, gaming.txt)
-```
-vscode
-git.install
-7zip.install
-nodejs-lts
+### Valid Chocolatey Entries (basic.yaml, developer.yaml, gaming.yaml)
+```yaml
+packages:
+  ides_and_editors:
+    - vscode
+    - git.install
+    - 7zip.install
+    - nodejs-lts
 ```
 
-### Valid PowerShell Module Entries (modules.txt)
-```
-PSReadLine
-Terminal-Icons
-posh-git
-Az
-ImportExcel
+### Valid PowerShell Module Entries (modules.yaml)
+```yaml
+modules:
+  code_editing_and_navigation:
+    - PSReadLine
+    - Terminal-Icons
+    - posh-git
+  
+  cloud_tools:
+    - Az
+    - ImportExcel
 ```
 
 ### Also Valid (with comments)
-```
-# IDEs
-vscode              # Visual Studio Code
-# pycharm           # Commented out - won't install
-
-# Version Control
-git.install         # Git for Windows
+```yaml
+packages:
+  ides_and_editors:
+    - vscode              # Visual Studio Code
+    # - pycharm           # Commented out - won't install
+  
+  version_control:
+    - git.install         # Git for Windows
 ```
 
 ## 🎯 Profile Behavior
 
-- **Basic Profile** → Installs only `basic.txt`
-- **Developer Profile** → Installs `basic.txt` + `developer.txt`
-- **Gaming Profile** → Installs `basic.txt` + `gaming.txt`
-- **PowerShell Profile** → Installs `basic.txt` + `powershell.txt`
-- **PowerShell Profile Config** → Installs modules from `modules.txt` + applies `profile-config.ps1`
+- **Basic Profile** → Installs only `basic.yaml`
+- **Developer Profile** → Installs `basic.yaml` + `developer.yaml`
+- **Gaming Profile** → Installs `basic.yaml` + `gaming.yaml`
+- **PowerShell Profile** → Installs `basic.yaml` + `powershell.yaml`
+- **PowerShell Profile Config** → Installs modules from `modules.yaml` + applies `profile-config.ps1`
 
 When combining profiles (e.g., `1,2,4`), duplicates are automatically removed.
 
@@ -161,21 +175,23 @@ When combining profiles (e.g., `1,2,4`), duplicates are automatically removed.
 
 ### Add Android Development Tools
 
-Edit `developer.txt`:
-```
-# Mobile Development
-androidstudio
-android-sdk
-flutter
+Edit `developer.yaml`:
+```yaml
+packages:
+  mobile_development:
+    - androidstudio
+    - android-sdk
+    - flutter
 ```
 
 ### Add Azure PowerShell Module
 
-Edit `modules.txt`:
-```
-# Cloud Modules
-Az
-AWSPowerShell.NetCore
+Edit `modules.yaml`:
+```yaml
+modules:
+  cloud_modules:
+    - Az
+    - AWSPowerShell.NetCore
 ```
 
 ### Customize PowerShell Profile
@@ -188,28 +204,5 @@ oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\atomic.omp.json" | Invoke-E
 # Add your own alias
 Set-Alias -Name code -Value "C:\Program Files\Microsoft VS Code\Code.exe"
 ```
-
-### Customize Windows Terminal
-
-Edit `windows-terminal-settings.json`:
-```json
-{
-    "defaultProfile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
-    "profiles": {
-        "defaults": {
-            "font": {
-                "face": "CaskaydiaCove Nerd Font",
-                "size": 12
-            }
-        }
-    }
-}
-```
-
-**Common customizations:**
-- Change font size (default: 11)
-- Change color scheme (default: "One Half Dark")
-- Adjust opacity (default: 95)
-- Change default profile GUID
 
 That's it! Next time you run the script, these will be installed or applied.

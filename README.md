@@ -1,249 +1,245 @@
-# Windows Installation Script
+<div align="center">
 
-Automated Windows software installation using Chocolatey package manager with different installation profiles.
+# 🚀 Windows Installation Script
 
-## Features
+**Automated Windows software installation with style and simplicity**
 
-- **Multiple Installation Profiles**:
-  - 🔧 **Basic** - Essential applications for everyday use
-  - 💻 **Developer** - Complete development environment setup
-  - 🎮 **Gaming** - Gaming platforms and related tools
-  - ⚙️ **Custom** - Manual package selection
+[![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://github.com/PowerShell/PowerShell)
+[![Chocolatey](https://img.shields.io/badge/Chocolatey-Powered-red.svg)](https://chocolatey.org/)
+[![Windows](https://img.shields.io/badge/Windows-10%2F11-blue.svg)](https://www.microsoft.com/windows)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-- **Automated Package Management** via Chocolatey
-- **Beautiful CLI Interface** with colored output
-- **Error Handling** and installation summaries
-- **Admin Privilege Checking**
+*Set up your Windows PC in minutes with pre-configured installation profiles*
 
-## Prerequisites
+[Features](#-features) • [Quick Start](#-quick-start) • [Profiles](#-installation-profiles) • [Customization](#-customization)
 
+---
+
+</div>
+
+## ✨ Features
+
+<table>
+<tr>
+<td width="50%">
+
+### 🎯 **Multiple Profiles**
+- � **Basic** - Essential everyday apps
+- 💻 **Developer** - Complete dev environment
+- 🎮 **Gaming** - Gaming platforms & tools
+- 🐚 **PowerShell** - Terminal & shell setup
+- ⚙️ **Custom** - Build your own
+
+</td>
+<td width="50%">
+
+### 🛠️ **Smart Features**
+- ✅ Automatic Chocolatey installation
+- 🎨 Beautiful CLI interface
+- 📊 Installation progress tracking
+- 💾 Package list management
+- 🔄 Multi-profile selection support
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
 - Windows 10/11
 - PowerShell 5.1 or later
 - Administrator privileges
 
-## Installation
+### Installation
 
-### Quick Start
-
-1. **Open PowerShell as Administrator**
-   - Press `Win + X`
-   - Select "Windows PowerShell (Admin)" or "Terminal (Admin)"
-
-2. **Navigate to the script directory**
-   ```powershell
-   cd "C:\Users\Arif Johar\repo\windows-installation\init-script"
-   ```
-
-3. **Run the installation script**
-   ```powershell
-   .\install.ps1
-   ```
-
-### Execution Policy
-
-If you encounter execution policy errors, run:
 ```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+# 1. Clone the repository
+git clone https://github.com/xzrians/.init-os.git
+cd .init-os/init-script
+
+# 2. Run the installer (as Administrator)
+.\install.ps1
+
+# 3. Select your profile and let it do the magic! ✨
 ```
 
-## Included Packages
+> **💡 Tip:** You can select multiple profiles at once! Example: `1,2,4` for Basic + Developer + PowerShell
 
-### 📦 Basic Profile
+---
 
-**Browsers:**
-- Google Chrome
-- Firefox
+## 📦 Installation Profiles
 
-**Communication:**
-- Discord
-- Zoom
+### 🔧 Basic Profile
 
-**Media:**
-- VLC Media Player
-- Spotify
+Perfect for everyday users who need essential applications.
 
-**Utilities:**
-- 7-Zip
-- Notepad++
-- Adobe Reader
-- WinDirStat
+<details>
+<summary><b>📋 View Packages</b></summary>
 
-**Security:**
-- Bitwarden
+| Category | Applications |
+|----------|-------------|
+| 🌐 **Browsers** | Google Chrome, Firefox |
+| 💬 **Communication** | Discord, Zoom |
+| 🎵 **Media** | VLC, Spotify |
+| 🔧 **Utilities** | 7-Zip, Notepad++, WizTree, PowerToys |
+| 🔒 **Security** | Bitwarden |
 
-**Cloud Storage:**
-- Dropbox
-- Google Drive
+</details>
 
 ### 💻 Developer Profile
 
-Includes all Basic packages plus:
+Complete development environment for programmers.
 
-**IDEs & Editors:**
-- Visual Studio Code
-- PyCharm Community
-- IntelliJ IDEA Community
+<details>
+<summary><b>📋 View Packages</b></summary>
 
-**Version Control:**
-- Git
-- GitHub Desktop
-- GitKraken
+| Category | Tools |
+|----------|-------|
+| 🖥️ **IDEs & Editors** | VS Code, PyCharm, IntelliJ IDEA, Android Studio |
+| 🔀 **Version Control** | Git, GitHub Desktop, GitKraken |
+| 🐍 **Languages** | Node.js, Python, .NET SDK, Java JDK 11 |
+| 🗄️ **Databases** | PostgreSQL, MongoDB, Redis |
+| 🐳 **Containers** | Docker Desktop, VirtualBox |
+| 🧪 **API Tools** | Postman, Insomnia |
+| 🔨 **Build Tools** | Maven, Gradle |
 
-**Programming Languages:**
-- Node.js LTS
-- Python
-- .NET SDK
-- Java JDK 11
-
-**Databases:**
-- PostgreSQL
-- MongoDB
-- Redis
-
-**Containers:**
-- Docker Desktop
-- VirtualBox
-
-**API Tools:**
-- Postman
-- Insomnia
-
-**Terminal:**
-- Windows Terminal
-- PowerShell Core
-
-**Build Tools:**
-- Maven
-- Gradle
-
-**Network Tools:**
-- cURL
-- wget
-- Fiddler
-- Wireshark
+</details>
 
 ### 🎮 Gaming Profile
 
-Includes all Basic packages plus:
+Everything you need for an optimal gaming experience.
 
-**Gaming Platforms:**
-- Steam
-- Epic Games Launcher
-- Origin
-- GOG Galaxy
-- Battle.net
+<details>
+<summary><b>📋 View Packages</b></summary>
 
-**Recording & Streaming:**
-- OBS Studio
+| Category | Applications |
+|----------|-------------|
+| 🎯 **Platforms** | Steam, Epic Games, Origin, GOG Galaxy, Battle.net |
+| 📹 **Streaming** | OBS Studio |
+| ⚡ **Optimization** | MSI Afterburner, NVIDIA App |
+| 🎮 **Controllers** | DS4Windows |
 
-**Optimization:**
-- MSI Afterburner
+</details>
 
-**Controller Support:**
-- DS4Windows
+### 🐚 PowerShell Profile
 
-### ⚙️ Custom Installation
+Modern terminal setup with beautiful theming.
 
-Select option 4 to manually specify packages. Enter package names separated by commas:
+<details>
+<summary><b>📋 View Packages</b></summary>
+
+| Category | Tools |
+|----------|-------|
+| 🖥️ **Terminal** | Windows Terminal, PowerShell Core |
+| 🎨 **Theming** | Oh My Posh, Nerd Fonts (Cascadia Code) |
+| 📦 **Modules** | PSReadLine, Terminal-Icons, posh-git |
+
+**Includes:**
+- ✅ Configured PowerShell profile with aliases
+- ✅ Windows Terminal setup (PowerShell 7 as default)
+- ✅ Custom functions and shortcuts
+- ✅ Beautiful prompt with Oh My Posh
+
+</details>
+
+---
+
+## 🎨 Menu Interface
 
 ```
-Packages: git, vscode, docker-desktop
+╔════════════════════════════════════════════════════════════╗
+║                                                            ║
+║          Windows Installation Script Manager              ║
+║                  Powered by Chocolatey                     ║
+║                                                            ║
+╚════════════════════════════════════════════════════════════╝
+
+Select Installation Profile(s):
+
+  1. Basic            - Essential applications for everyday use
+  2. Developer        - Programming tools, IDEs, and development environment
+  3. Gaming           - Gaming platforms and related tools
+  4. PowerShell       - PowerShell tools and terminal setup
+  5. Custom           - Choose packages manually
+  6. Configure PowerShell Profile - Setup Oh-My-Posh, aliases, and functions
+  7. Exit             - Exit the installer
+
+TIP: You can select multiple options (e.g., 1,3 for Basic + Gaming)
 ```
 
-Type `list` to open Chocolatey package search in your browser.
+---
 
-## Developer Package Categories
+## 🛠️ Customization
 
-The `dev-package.ps1` file contains specialized package lists for different development stacks:
+### Easy Package Management
 
-- **Frontend Development** - React, Vue, Angular tooling
-- **Backend Development** - Server-side languages and databases
-- **Full Stack** - Combined frontend and backend tools
-- **DevOps & Cloud** - Container, orchestration, and cloud tools
-- **Data Science & ML** - Python, R, Jupyter, and analytics tools
-- **Mobile Development** - Android and cross-platform tools
-- **Game Development** - Unity, Blender, and game dev tools
-- **Database Development** - Database servers and management tools
+All packages are stored in structured YAML files - no script editing needed!
 
-## Usage Examples
+```
+📁 packages/
+├── 📄 basic.yaml         # Edit to add/remove basic apps
+├── 📄 developer.yaml     # Edit to add/remove dev tools
+├── 📄 gaming.yaml        # Edit to add/remove games
+├── 📄 powershell.yaml    # Edit to add/remove shell tools
+├── 📄 modules.yaml       # Edit to add/remove PS modules
+└── 📄 profile-config.ps1 # Customize PowerShell profile
+```
 
-### Installing Basic Profile
+### Adding a Package
+
+Simply edit the appropriate `.yaml` file:
+
+```yaml
+# packages/basic.yaml
+packages:
+  browsers:
+    - googlechrome
+    - firefox
+    - brave          # <-- Just add this line!
+```
+
+### Removing a Package
+
+Comment it out or delete the line:
+
+```yaml
+packages:
+  browsers:
+    # - googlechrome     # Won't be installed
+    - firefox
+```
+
+---
+
+## 📖 Usage Examples
+
+### Single Profile Installation
 ```powershell
 .\install.ps1
-# Select option 1
+# Select: 2 (Developer)
 ```
 
-### Installing Developer Profile
+### Multi-Profile Installation
 ```powershell
 .\install.ps1
-# Select option 2
+# Select: 1,2,4 (Basic + Developer + PowerShell)
 ```
 
 ### Custom Package Installation
 ```powershell
 .\install.ps1
-# Select option 4
+# Select: 5 (Custom)
 # Enter: git, vscode, docker-desktop, postman
 ```
 
-## Updating Packages
+---
 
-To update all installed Chocolatey packages:
-```powershell
-choco upgrade all -y
-```
+## 🔧 Useful Commands
 
-## Troubleshooting
-
-### Script Won't Run
-- Ensure you're running PowerShell as Administrator
-- Check execution policy: `Get-ExecutionPolicy`
-- Set appropriate policy: `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`
-
-### Chocolatey Installation Fails
-- Check internet connection
-- Ensure antivirus isn't blocking the installation
-- Visit [Chocolatey Installation Guide](https://chocolatey.org/install)
-
-### Package Installation Fails
-- Package might have been renamed or removed
-- Check the package exists: Visit https://community.chocolatey.org/packages
-- Try installing manually: `choco install <package-name> -y`
-
-## Customization
-
-### Adding New Packages
-
-Edit `install.ps1` and modify the respective function:
-
-```powershell
-function Get-BasicPackages {
-    return @(
-        'googlechrome',
-        'firefox',
-        'your-new-package'  # Add your package here
-    )
-}
-```
-
-### Creating New Profiles
-
-Add a new function in `install.ps1`:
-
-```powershell
-function Get-YourCustomProfile {
-    return @(
-        'package1',
-        'package2',
-        'package3'
-    )
-}
-```
-
-Then add it to the menu in the `Show-Menu` and switch statement.
-
-## Useful Chocolatey Commands
-
+### Package Management
 ```powershell
 # Search for packages
 choco search <package-name>
@@ -251,28 +247,107 @@ choco search <package-name>
 # List installed packages
 choco list --local-only
 
-# Uninstall a package
-choco uninstall <package-name>
-
-# Update a specific package
-choco upgrade <package-name>
-
 # Update all packages
-choco upgrade all
+choco upgrade all -y
+
+# Uninstall a package
+choco uninstall <package-name> -y
 ```
 
-## Contributing
+### Script Options
+```powershell
+# Run with multi-selection
+.\install.ps1
+# Enter: 1,2,4
 
-Feel free to add more packages or create additional profiles based on your needs!
-
-## License
-
-Free to use and modify for personal use.
-
-## Author
-
-Arif Johar
+# Update existing installations
+choco upgrade all -y
+```
 
 ---
 
-**Note:** Always review packages before installation. Some packages may require additional configuration or licenses.
+## 🐛 Troubleshooting
+
+<details>
+<summary><b>Script Won't Run</b></summary>
+
+**Solution:**
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+</details>
+
+<details>
+<summary><b>Chocolatey Installation Fails</b></summary>
+
+**Checklist:**
+- ✅ Check internet connection
+- ✅ Disable antivirus temporarily
+- ✅ Run as Administrator
+- ✅ Visit [Chocolatey Docs](https://chocolatey.org/install)
+</details>
+
+<details>
+<summary><b>Package Installation Fails</b></summary>
+
+**Troubleshooting:**
+1. Check if package exists: `choco search <package-name>`
+2. Try manual installation: `choco install <package-name> -y`
+3. Check [Chocolatey Packages](https://community.chocolatey.org/packages)
+</details>
+
+---
+
+## 📂 Project Structure
+
+```
+.init-os/
+├── 📁 init-script/
+│   ├── 📄 install.ps1              # Main installation script
+│   └── 📁 packages/
+│       ├── 📄 basic.yaml           # Basic packages list
+│       ├── 📄 developer.yaml       # Developer packages list
+│       ├── 📄 gaming.yaml          # Gaming packages list
+│       ├── 📄 powershell.yaml      # PowerShell packages list
+│       ├── 📄 modules.yaml         # PowerShell modules list
+│       ├── 📄 profile-config.ps1   # PowerShell profile config
+│       └── 📄 README.md            # Package management guide
+├── 📄 .gitignore                   # Git ignore rules
+├── 📄 LICENSE                      # MIT License
+└── 📄 README.md                    # This file
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to:
+
+- 🐛 Report bugs
+- 💡 Suggest new features
+- 📦 Add new package profiles
+- 📝 Improve documentation
+
+---
+
+## 📝 License
+
+This project is free to use and modify for personal use.
+
+---
+
+## 👤 Author
+
+**Arif Johar**
+
+- GitHub: [@xzrians](https://github.com/xzrians)
+
+---
+
+<div align="center">
+
+### ⭐ Star this repo if it helped you set up your Windows PC faster!
+
+Made with ❤️ and ☕ by Arif Johar
+
+</div>

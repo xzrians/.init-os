@@ -1,0 +1,35 @@
+# YAML Package File Template
+# This is a template showing the proper structure for package files
+# Copy this structure when creating new package categories
+---
+packages:
+  # Category name (use snake_case)
+  category_name:
+    - package-name-1
+    - package-name-2
+    # - commented-package    # This won't be installed
+  
+  another_category:
+    - another-package
+  
+  # You can have as many categories as you want
+  # Categories are just for organization - all packages are installed
+  
+  # Example categories:
+  # browsers:
+  #   - googlechrome
+  #   - firefox
+  # 
+  # utilities:
+  #   - 7zip.install
+  #   - notepadplusplus.install
+  
+  # Empty categories are OK
+  empty_category:
+  
+# Notes:
+# - Empty files are OK and won't cause errors
+# - All lines starting with # are comments
+# - Use 2 spaces for indentation
+# - Package names must start with "- "
+# - Categories are optional, you can list packages directly under "packages:"

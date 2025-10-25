@@ -1,0 +1,25 @@
+# PowerShell profile backups
+*.backup_*
+
+# Windows Terminal backups
+settings.json.backup_*
+
+# Local configuration
+config.local.ps1
+secrets.ps1
+
+# Windows system files
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# User-specific files
+*.user
+.vscode/settings.json

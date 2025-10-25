@@ -1,0 +1,8 @@
+# PowerShell Development Tools Configuration
+---
+packages:
+  terminal_and_shell:
+    - microsoft-windows-terminal
+    - powershell-core
+    - oh-my-posh
+    - nerd-fonts-cascadiacode
