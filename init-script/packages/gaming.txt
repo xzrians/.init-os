@@ -1,0 +1,20 @@
+# Gaming Packages
+# Gaming Platforms
+steam
+epicgameslauncher
+origin
+goggalaxy
+battle.net
+
+# Gaming Communication
+discord
+
+# Recording & Streaming
+obs-studio
+
+# Game Optimization
+msi-afterburner
+nvidia-app
+
+# Controllers
+ds4windows

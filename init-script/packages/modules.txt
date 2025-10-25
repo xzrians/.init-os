@@ -1,0 +1,17 @@
+# PowerShell Modules to Install
+# These modules will be installed from PowerShell Gallery
+# One module per line, comments (#) and empty lines are ignored
+
+# Code Editing & Navigation
+PSReadLine
+Terminal-Icons
+posh-git
+
+# Additional useful modules (uncomment to install)
+# PSScriptAnalyzer
+# PowerShellGet
+# Az
+# AWSPowerShell.NetCore
+# ImportExcel
+# SqlServer
+# Microsoft.Graph

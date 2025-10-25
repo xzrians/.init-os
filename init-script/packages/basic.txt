@@ -1,0 +1,22 @@
+# Basic Packages
+# Browsers
+
+
+# Communication
+discord
+
+# Media
+vlc
+spotify
+
+# Utilities
+7zip.install
+notepadplusplus.install
+adobereader
+wiztree
+powertoys
+
+# Security
+bitwarden
+
+# Cloud Storage
