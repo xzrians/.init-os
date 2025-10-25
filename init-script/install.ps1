@@ -245,6 +245,7 @@ function Show-Menu {
             'gaming' { "Gaming platforms and related tools" }
             'powershell' { "PowerShell tools and terminal setup" }
             'social' { "WhatsApp, Telegram, and social media apps" }
+            'tools' { "System utilities, package managers, and power user tools" }
             default { "$($profile.DisplayName) packages" }
         }
         
