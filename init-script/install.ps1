@@ -85,7 +85,18 @@ function Install-Packages {
         return
     }
     
-    # Load installation history
+    # Get list of installed packages from Chocolatey
+    Write-ColorOutput "`nChecking installed packages..." -Type Info
+    $chocoList = choco list --local-only --limit-output
+    $installedChocoPackages = @{}
+    
+    foreach ($line in $chocoList) {
+        if ($line -match '^(.+?)\|(.+)$') {
+            $installedChocoPackages[$matches[1]] = $matches[2]
+        }
+    }
+    
+    # Load installation history database
     $installedPackages = Get-InstalledPackagesDB
     
     # Filter out already installed packages
@@ -98,10 +109,16 @@ function Install-Packages {
             continue
         }
         
-        if ($installedPackages.ContainsKey($package)) {
-            $installDate = $installedPackages[$package].InstallDate
-            Write-ColorOutput "⊳ Skipping $package (already installed on $installDate)" -Type Info
+        # Check if package is installed via Chocolatey
+        if ($installedChocoPackages.ContainsKey($package)) {
+            $version = $installedChocoPackages[$package]
+            Write-ColorOutput "⊳ Skipping $package (v$version already installed)" -Type Info
             $skippedCount++
+            
+            # Update database with actual installed package
+            if (-not $installedPackages.ContainsKey($package)) {
+                Add-PackageToInstalledDB -PackageName $package -ProfileName $ProfileName -Version $version
+            }
         } else {
             $packagesToInstall += $package
         }
@@ -131,8 +148,15 @@ function Install-Packages {
                 Write-ColorOutput "✓ $package installed successfully" -Type Success
                 $successCount++
                 
+                # Get installed version
+                $chocoInfo = choco list $package --local-only --limit-output --exact
+                $version = "unknown"
+                if ($chocoInfo -match '^.+?\|(.+)$') {
+                    $version = $matches[1]
+                }
+                
                 # Add to installation database
-                Add-PackageToInstalledDB -PackageName $package -ProfileName $ProfileName
+                Add-PackageToInstalledDB -PackageName $package -ProfileName $ProfileName -Version $version
             } else {
                 Write-ColorOutput "✗ $package installation failed" -Type Warning
                 $failCount++
@@ -181,7 +205,8 @@ function Get-InstalledPackagesDB {
 function Add-PackageToInstalledDB {
     param(
         [string]$PackageName,
-        [string]$ProfileName
+        [string]$ProfileName,
+        [string]$Version = "unknown"
     )
     
     $scriptPath = Split-Path -Parent $MyInvocation.PSCommandPath
@@ -194,7 +219,7 @@ function Add-PackageToInstalledDB {
     $installedPackages[$PackageName] = @{
         InstallDate = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
         Profile = $ProfileName
-        Version = "latest"
+        Version = $Version
     }
     
     # Save to file
@@ -375,7 +400,8 @@ function Show-InstallHistory {
     $installedPackages = Get-InstalledPackagesDB
     
     if ($installedPackages.Count -eq 0) {
-        Write-ColorOutput "`nNo packages have been installed yet." -Type Info
+        Write-ColorOutput "`nNo packages tracked in database yet." -Type Info
+        Write-ColorOutput "Note: Packages installed before database tracking won't appear here." -Type Info
         return
     }
     
@@ -385,30 +411,37 @@ function Show-InstallHistory {
     # Group by profile
     $byProfile = @{}
     foreach ($pkg in $installedPackages.GetEnumerator()) {
-        $profile = $pkg.Value.Profile
-        if (-not $byProfile.ContainsKey($profile)) {
-            $byProfile[$profile] = @()
+        $profileName = $pkg.Value.Profile
+        if (-not $byProfile.ContainsKey($profileName)) {
+            $byProfile[$profileName] = @()
         }
-        $byProfile[$profile] += @{
+        $byProfile[$profileName] += @{
             Name = $pkg.Key
             Date = $pkg.Value.InstallDate
+            Version = $pkg.Value.Version
         }
     }
     
     # Display grouped by profile
-    foreach ($profile in ($byProfile.Keys | Sort-Object)) {
-        Write-ColorOutput "`n$profile Profile:" -Type Header
-        $packages = $byProfile[$profile] | Sort-Object Name
+    foreach ($profileName in ($byProfile.Keys | Sort-Object)) {
+        Write-ColorOutput "`n$profileName Profile:" -Type Header
+        $packages = $byProfile[$profileName] | Sort-Object Name
         foreach ($pkg in $packages) {
-            Write-Host ("  • {0,-30} (installed: {1})" -f $pkg.Name, $pkg.Date) -ForegroundColor Cyan
+            $versionInfo = if ($pkg.Version -ne "unknown") { "v$($pkg.Version)" } else { "" }
+            Write-Host ("  • {0,-30} {1,-15} (installed: {2})" -f $pkg.Name, $versionInfo, $pkg.Date) -ForegroundColor Cyan
         }
     }
     
     Write-Host "`n"
+    Write-ColorOutput "Note: This shows packages tracked by this script." -Type Info
+    Write-ColorOutput "Use 'choco list' to see all Chocolatey packages." -Type Info
+    Write-Host "`n"
+    
     $clearChoice = Read-Host "Would you like to clear the installation history? (y/n)"
     if ($clearChoice -eq 'y' -or $clearChoice -eq 'Y') {
         Clear-InstalledPackagesDB
-        Write-ColorOutput "Next installation will reinstall all packages." -Type Info
+        Write-ColorOutput "Note: Packages are still installed via Chocolatey." -Type Info
+        Write-ColorOutput "The script will check Chocolatey and skip already installed packages." -Type Info
     }
 }
 
