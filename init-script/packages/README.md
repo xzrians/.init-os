@@ -1,42 +1,89 @@
-# Package List Files
+# Package Configuration
 
-This directory contains package list files that the installation script reads from. You can easily add or remove packages without modifying the main script.
+This directory contains the unified package configuration file that the installation script reads from. You can easily add or remove packages without modifying the main script.
 
-## 📄 Package Files
+## 📄 Main Files
 
-- **basic.yaml** - Essential everyday applications
-- **developer.yaml** - Development tools and environments
-- **gaming.yaml** - Gaming platforms and tools
-- **powershell.yaml** - PowerShell development tools and terminal setup
+- **packages.yaml** - Unified configuration containing all profiles (basic, developer, gaming, social, tools, powershell)
 - **modules.yaml** - PowerShell modules from PowerShell Gallery
+- **template.yaml** - Template showing the unified YAML structure
 - **profile-config.ps1** - PowerShell profile configuration (aliases, functions, Oh My Posh)
+- **PACKAGE_MANAGER_GUIDE.md** - Complete guide for using Chocolatey and Winget
+
+## 📋 Unified Structure (packages.yaml)
+
+All profiles are now in one file for easier management:
+
+```yaml
+---
+# Profile 1
+basic:
+  winget:
+    - Package.ID
+  choco:
+    - packagename
+
+# Profile 2
+developer:
+  winget:
+    - Microsoft.VisualStudioCode
+  choco:
+    - vscode
+    - git.install
+
+# Profile 3
+gaming:
+  winget:
+    - Valve.Steam
+  choco:
+    - steam
+    - discord
+```
 
 ## ✏️ How to Add/Remove Packages
 
-### Chocolatey Packages (basic.yaml, developer.yaml, gaming.yaml, powershell.yaml)
+### Adding a Package
 
-**Add a Package:**
-
-Simply add the package name to the appropriate category in YAML format:
+1. Open `packages.yaml`
+2. Find the profile section (basic, developer, gaming, etc.)
+3. Add under `winget:` or `choco:` section:
 
 ```yaml
-# basic.yaml
-packages:
-  browsers:
-    - googlechrome
-    - firefox
-    - brave          # <-- Add new package here
+developer:
+  winget:
+    - Microsoft.VisualStudioCode
+    - Git.Git                      # <-- Add new winget package
+  
+  choco:
+    - vscode
+    - git.install
+    - nodejs                       # <-- Add new choco package
 ```
 
-**Remove a Package:**
+### Removing a Package
 
 Either delete the line or comment it out with `#`:
 
 ```yaml
-packages:
-  browsers:
-    # - googlechrome     # <-- Commented out, won't be installed
-    - firefox
+developer:
+  choco:
+    - vscode
+    # - git.install                # <-- Commented out, won't install
+    - docker-desktop
+```
+
+### Finding Package IDs
+
+**For Winget:**
+```powershell
+winget search <app-name>
+# Example: winget search telegram
+```
+
+**For Chocolatey:**
+```powershell
+choco search <app-name>
+# Or visit: https://community.chocolatey.org/packages
 ```
 
 ### PowerShell Modules (modules.yaml)
@@ -154,34 +201,55 @@ packages:
 
 ## 🎯 Profile Behavior
 
-- **Basic Profile** → Installs only `basic.yaml`
-- **Developer Profile** → Installs `basic.yaml` + `developer.yaml`
-- **Gaming Profile** → Installs `basic.yaml` + `gaming.yaml`
-- **PowerShell Profile** → Installs `basic.yaml` + `powershell.yaml`
-- **PowerShell Profile Config** → Installs modules from `modules.yaml` + applies `profile-config.ps1`
+The unified `packages.yaml` contains all profiles in sections:
 
-When combining profiles (e.g., `1,2,4`), duplicates are automatically removed.
+- **Basic Profile** → Installs packages from `basic:` section
+- **Developer Profile** → Installs `basic:` + `developer:` sections
+- **Gaming Profile** → Installs `basic:` + `gaming:` sections
+- **Social Profile** → Installs `basic:` + `social:` sections
+- **Tools Profile** → Installs `basic:` + `tools:` sections
+- **PowerShell Profile** → Installs `basic:` + `powershell:` sections
+- **PowerShell Config** → Installs modules from `modules.yaml` + applies `profile-config.ps1`
+
+**Multi-Selection:**
+When combining profiles (e.g., `1,2,6` for Basic + Developer + PowerShell), duplicates are automatically removed.
+
+**Note:** Most profiles automatically include the `basic:` section to ensure essential tools are installed.
 
 ## 🚀 Quick Tips
 
-1. **Backup before editing** - Copy the file first if you want to keep the original
+1. **Backup before editing** - Copy `packages.yaml` first if you want to keep the original
 2. **Use .install versions** when available (e.g., `git.install` instead of `git`)
 3. **Test with one package** first before adding many
 4. **Keep comments** to remember why you added specific packages
 5. **PowerShell modules** are installed from PowerShell Gallery, not Chocolatey
 6. **Profile customization** - Edit `profile-config.ps1` to change aliases, functions, and Oh My Posh theme
+7. **Winget for Store apps** - Use Winget for Microsoft Store apps like WhatsApp (9NKSQGP7F2NH)
+8. **Migration detection** - The script auto-detects when you switch package managers
 
 ## 📋 Example: Adding Packages
 
-### Add Android Development Tools
+### Add Development Tools to Developer Profile
 
-Edit `developer.yaml`:
+Edit `packages.yaml`:
 ```yaml
-packages:
-  mobile_development:
-    - androidstudio
-    - android-sdk
-    - flutter
+developer:
+  choco:
+    - vscode
+    - git.install
+    - nodejs       # <-- Add Node.js
+    - python       # <-- Add Python
+```
+
+### Add WhatsApp to Social Profile (via Winget)
+
+Edit `packages.yaml`:
+```yaml
+social:
+  winget:
+    - 9NKSQGP7F2NH              # WhatsApp (already added)
+    - Telegram.TelegramDesktop  # Telegram (already added)
+    - Zoom.Zoom                 # <-- Add Zoom
 ```
 
 ### Add Azure PowerShell Module
@@ -189,9 +257,11 @@ packages:
 Edit `modules.yaml`:
 ```yaml
 modules:
-  cloud_modules:
-    - Az
-    - AWSPowerShell.NetCore
+  additional_modules:
+    - PSScriptAnalyzer
+    - PowerShellGet
+    - Az              # <-- Add Azure module
+    - ImportExcel     # <-- Add Excel module
 ```
 
 ### Customize PowerShell Profile
@@ -203,6 +273,34 @@ oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\atomic.omp.json" | Invoke-E
 
 # Add your own alias
 Set-Alias -Name code -Value "C:\Program Files\Microsoft VS Code\Code.exe"
+Set-Alias -Name g -Value git
 ```
+
+## 🔄 Package Manager Migration
+
+If you change a package from Chocolatey to Winget (or vice versa), the script will:
+
+1. **Detect** the package is already installed via the old manager
+2. **Prompt** you to confirm uninstallation from old manager
+3. **Uninstall** from the old manager
+4. **Reinstall** via the new manager
+5. **Update** the tracking database
+
+**Example Migration:**
+```yaml
+# Before (Chocolatey)
+social:
+  choco:
+    - telegram
+
+# After (Winget - Microsoft Store version)
+social:
+  winget:
+    - Telegram.TelegramDesktop
+  choco:
+    # - telegram  # Removed from here
+```
+
+On next installation, the script will detect Telegram is installed via Chocolatey but should be Winget, and offer to migrate it.
 
 That's it! Next time you run the script, these will be installed or applied.

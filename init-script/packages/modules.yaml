@@ -1,18 +1,58 @@
-# PowerShell Modules Configuration
-# These modules will be installed from PowerShell Gallery
 ---
+# ═══════════════════════════════════════════════════════════
+# PowerShell Modules Configuration
+# Modules are installed from PowerShell Gallery
+# ═══════════════════════════════════════════════════════════
+
 modules:
+  # ─────────────────────────────────────────────────────────
+  # Essential PowerShell Modules
+  # ─────────────────────────────────────────────────────────
   code_editing_and_navigation:
-    - PSReadLine
-    - Terminal-Icons
-    - posh-git
+    - PSReadLine          # Enhanced command-line editing
+    - Terminal-Icons      # File and folder icons in terminal
+    - posh-git            # Git status in prompt
   
-  # Uncomment modules below to install
-  # additional_modules:
-  #   - PSScriptAnalyzer
-  #   - PowerShellGet
-  #   - Az
-  #   - AWSPowerShell.NetCore
-  #   - ImportExcel
-  #   - SqlServer
-  #   - Microsoft.Graph
+  # ─────────────────────────────────────────────────────────
+  # Additional Modules (Uncomment to enable)
+  # ─────────────────────────────────────────────────────────
+  additional_modules:
+    - PSScriptAnalyzer    # PowerShell code analysis
+    - PowerShellGet       # Package management
+    # - Az                # Azure PowerShell modules
+    # - AWSPowerShell.NetCore  # AWS PowerShell modules
+    # - ImportExcel       # Excel file manipulation
+    # - SqlServer         # SQL Server management
+    # - Microsoft.Graph   # Microsoft Graph API
+
+# ═══════════════════════════════════════════════════════════
+# Module Descriptions
+# ═══════════════════════════════════════════════════════════
+#
+# PSReadLine:
+#   - Syntax highlighting
+#   - History search
+#   - Predictive IntelliSense
+#
+# Terminal-Icons:
+#   - Colorful file/folder icons
+#   - Enhanced ls/dir output
+#
+# posh-git:
+#   - Git repository status in prompt
+#   - Tab completion for git commands
+#
+# PSScriptAnalyzer:
+#   - Code quality analysis
+#   - Best practice suggestions
+#
+# Az:
+#   - Manage Azure resources
+#   - 50+ sub-modules
+#   - Requires: PowerShell 7+
+#
+# ImportExcel:
+#   - Read/Write Excel files
+#   - No Excel installation needed
+#
+# ═══════════════════════════════════════════════════════════

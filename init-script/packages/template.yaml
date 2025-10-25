@@ -1,35 +1,128 @@
-# YAML Package File Template
-# This is a template showing the proper structure for package files
-# Copy this structure when creating new package categories
 ---
-packages:
-  # Category name (use snake_case)
-  category_name:
+# ═══════════════════════════════════════════════════════════
+# YAML Package Configuration Template
+# Use this as a reference for packages.yaml structure
+# ═══════════════════════════════════════════════════════════
+
+# ┌───────────────────────────────────────────────────────────┐
+# │ Profile Structure                                         │
+# │ Profile names (lowercase, use underscore for spaces)      │
+# └───────────────────────────────────────────────────────────┘
+
+profile_name:
+  # ─────────────────────────────────────────────────────────
+  # Winget Packages
+  # Microsoft Store and official packages
+  # To find IDs: winget search <app-name>
+  # ─────────────────────────────────────────────────────────
+  winget:
+    - Package.ID              # Standard Package ID format
+    - 9NXXXXXXXXX             # Microsoft Store Product ID (9-char code)
+    # Examples:
+    # - Microsoft.PowerToys
+    # - Google.Chrome
+    # - 9NKSQGP7F2NH         # WhatsApp (Microsoft Store)
+
+  # ─────────────────────────────────────────────────────────
+  # Chocolatey Packages
+  # Default package manager with mature ecosystem
+  # To find IDs: choco search <app-name>
+  # Visit: https://community.chocolatey.org/packages
+  # ─────────────────────────────────────────────────────────
+  choco:
     - package-name-1
     - package-name-2
-    # - commented-package    # This won't be installed
+    # - commented-package     # This won't be installed
+    
+    # Organization with inline comments:
+    # - googlechrome          # Web Browser
+    # - 7zip.install          # File Archiver
+    # - git.install           # Version Control
+
+# ┌───────────────────────────────────────────────────────────┐
+# │ Multiple Profiles in Same File                            │
+# └───────────────────────────────────────────────────────────┘
+
+another_profile:
+  winget:
+    # - AnotherApp.ID
   
-  another_category:
-    - another-package
-  
-  # You can have as many categories as you want
-  # Categories are just for organization - all packages are installed
-  
-  # Example categories:
-  # browsers:
-  #   - googlechrome
-  #   - firefox
-  # 
-  # utilities:
-  #   - 7zip.install
-  #   - notepadplusplus.install
-  
-  # Empty categories are OK
-  empty_category:
-  
-# Notes:
-# - Empty files are OK and won't cause errors
-# - All lines starting with # are comments
-# - Use 2 spaces for indentation
-# - Package names must start with "- "
-# - Categories are optional, you can list packages directly under "packages:"
+  choco:
+    # - another-package
+
+# ═══════════════════════════════════════════════════════════
+# IMPORTANT NOTES
+# ═══════════════════════════════════════════════════════════
+#
+# 1. Profile Names:
+#    - Use lowercase letters
+#    - Use underscores for spaces (my_profile)
+#    - Profile names become menu options automatically
+#    - Examples: basic, developer, gaming, social, tools
+#
+# 2. Empty Sections:
+#    - OK to have empty winget: or choco: sections
+#    - Comment out or leave blank if not needed
+#
+# 3. Comments:
+#    - Lines starting with # are comments
+#    - Inline comments supported: - package # description
+#
+# 4. Package Names:
+#    - Must start with "- " (dash + space)
+#    - Case-sensitive for winget
+#    - Use .install suffix for Chocolatey when available
+#
+# 5. Package Manager Selection:
+#    - Use winget for: Microsoft Store apps, auto-update apps
+#    - Use choco for: Development tools, wider availability
+#
+# 6. Finding Package IDs:
+#    Winget:  winget search <name>
+#    Choco:   choco search <name>
+#    Store:   Microsoft Store URL (9-character code)
+#
+# 7. Migration Detection:
+#    - Script detects manager switches automatically
+#    - Offers to uninstall from old manager
+#    - Reinstalls via new manager
+#    - Database tracks: choco:package or winget:package
+#
+# ═══════════════════════════════════════════════════════════
+# EXAMPLES
+# ═══════════════════════════════════════════════════════════
+
+# Example 1: Social Media Profile
+# social:
+#   winget:
+#     - 9NKSQGP7F2NH              # WhatsApp
+#     - Telegram.TelegramDesktop  # Telegram
+#   choco:
+#     - discord
+#     - slack
+
+# Example 2: Developer Profile
+# developer:
+#   winget:
+#     - Microsoft.VisualStudioCode
+#     - Git.Git
+#   choco:
+#     - nodejs
+#     - python
+#     - docker-desktop
+#     - postman
+
+# Example 3: Mixed Usage
+# my_tools:
+#   winget:
+#     - Microsoft.PowerToys       # Windows utilities
+#     - 9N0DX20HK701              # Windows Terminal
+#   choco:
+#     - 7zip.install              # File compression
+#     - cpu-z                     # System info
+#     - everything                # File search
+
+# ═══════════════════════════════════════════════════════════
+# For actual configuration, edit packages.yaml
+# ═══════════════════════════════════════════════════════════
+
