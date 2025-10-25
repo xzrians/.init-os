@@ -795,11 +795,13 @@ function Show-Menu {
     # Static menu options
     $customOption = $menuNumber
     $profileOption = $menuNumber + 1
-    $historyOption = $menuNumber + 2
-    $exitOption = $menuNumber + 3
+    $upgradeOption = $menuNumber + 2
+    $historyOption = $menuNumber + 3
+    $exitOption = $menuNumber + 4
     
     Write-Host ("  {0}. {1,-15} - {2}" -f $customOption, "Custom", "Choose packages manually") -ForegroundColor Magenta
     Write-Host ("  {0}. {1,-15} - {2}" -f $profileOption, "Configure Profile", "Setup Oh-My-Posh, aliases, and functions") -ForegroundColor DarkCyan
+    Write-Host ("  {0}. {1,-15} - {2}" -f $upgradeOption, "Upgrade All", "Upgrade all installed packages") -ForegroundColor Yellow
     Write-Host ("  {0}. {1,-15} - {2}" -f $historyOption, "Install History", "View/clear installation history") -ForegroundColor Gray
     Write-Host ("  {0}. {1,-15} - {2}" -f $exitOption, "Exit", "Exit the installer") -ForegroundColor Red
     Write-Host ""
@@ -1137,16 +1139,17 @@ try {
         exit
     }
     
-    # Install Chocolatey if not present
-    Install-Chocolatey
+    # Initialize package managers (Chocolatey and Winget)
+    Initialize-PackageManagers
     
     # Get available profiles for dynamic menu handling
     $availableProfiles = Get-AvailableProfiles
     $profileCount = $availableProfiles.Count
     $customOption = $profileCount + 1
     $profileConfigOption = $profileCount + 2
-    $historyOption = $profileCount + 3
-    $exitOption = $profileCount + 4
+    $upgradeOption = $profileCount + 3
+    $historyOption = $profileCount + 4
+    $exitOption = $profileCount + 5
     
     # Main menu loop
     do {
@@ -1174,6 +1177,9 @@ try {
                 }
                 elseif ($choiceNum -eq $profileConfigOption) {
                     Write-ColorOutput "`nPowerShell profile configuration cannot be combined with other options." -Type Warning
+                }
+                elseif ($choiceNum -eq $upgradeOption) {
+                    Write-ColorOutput "`nUpgrade all cannot be combined with other options." -Type Warning
                 }
                 elseif ($choiceNum -eq $historyOption) {
                     Write-ColorOutput "`nInstall history cannot be combined with other options." -Type Warning
@@ -1210,6 +1216,9 @@ try {
             }
             elseif ($choiceNum -eq $profileConfigOption) {
                 Update-PowerShellProfile
+            }
+            elseif ($choiceNum -eq $upgradeOption) {
+                Update-AllPackages
             }
             elseif ($choiceNum -eq $historyOption) {
                 Show-InstallHistory
