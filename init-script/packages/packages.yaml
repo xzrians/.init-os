@@ -1,0 +1,197 @@
+---
+# Unified Package Configuration
+# All profiles in one file - easier to manage and maintain
+# To find winget IDs: winget search <app-name>
+# Microsoft Store apps use Product ID (e.g., 9NKSQGP7F2NH)
+
+# ═══════════════════════════════════════════════════════════
+# BASIC PROFILE - Essential applications for everyday use
+# ═══════════════════════════════════════════════════════════
+basic:
+  winget:
+    # Browsers (winget for auto-updates)
+    # - Google.Chrome
+    
+    # Media apps
+    # - Spotify.Spotify
+
+  choco:
+    # Browsers
+    - googlechrome
+    
+    # Media Players
+    - vlc
+    - spotify
+    
+    # Utilities
+    - 7zip.install
+    - notepadplusplus.install
+    - adobereader
+    - wiztree
+    - powertoys
+    
+    # Security
+    - bitwarden
+    
+    # Cloud Storage
+    # - googledrive
+    # - dropbox
+
+# ═══════════════════════════════════════════════════════════
+# DEVELOPER PROFILE - Programming tools and IDEs
+# ═══════════════════════════════════════════════════════════
+developer:
+  winget:
+    # IDEs & Editors (winget for auto-updates)
+    # - Microsoft.VisualStudioCode
+    # - Git.Git
+
+  choco:
+    # IDEs & Editors
+    - vscode
+    
+    # Version Control
+    - git.install
+    - github-desktop
+    - gitkraken
+    
+    # Development Tools
+    # - nodejs
+    # - python
+    # - golang
+    
+    # Databases
+    # - postgresql
+    # - mongodb
+    # - mysql
+    
+    # Containers & VMs
+    - docker-desktop
+    
+    # API & Testing
+    # - postman
+    # - insomnia
+    
+    # Build Tools
+    # - make
+    # - cmake
+
+# ═══════════════════════════════════════════════════════════
+# GAMING PROFILE - Gaming platforms and related tools
+# ═══════════════════════════════════════════════════════════
+gaming:
+  winget:
+    # Gaming platforms (winget for better integration)
+    # - Valve.Steam
+    # - EpicGames.EpicGamesLauncher
+
+  choco:
+    # Gaming Platforms
+    - steam
+    - epicgameslauncher
+    - origin
+    # - ea-app
+    # - gog-galaxy
+    
+    # Gaming Communication
+    - discord
+    
+    # Recording & Streaming
+    # - obs-studio
+    # - streamlabs-obs
+    
+    # Game Optimization
+    # - msi-afterburner
+    # - rivatuner
+    
+    # Controllers
+    # - ds4windows
+
+# ═══════════════════════════════════════════════════════════
+# SOCIAL PROFILE - Messaging and social media apps
+# ═══════════════════════════════════════════════════════════
+social:
+  winget:
+    # Messaging Apps (Microsoft Store integration)
+    - 9NKSQGP7F2NH              # WhatsApp
+    - Telegram.TelegramDesktop  # Telegram Desktop
+
+  choco:
+    # Social Media & Communication
+    - discord
+    # - slack
+    # - microsoft-teams
+    # - zoom
+    
+    # Optional Communication Tools
+    # - skype
+    # - signal
+    # - viber
+    # - line
+
+# ═══════════════════════════════════════════════════════════
+# TOOLS PROFILE - System utilities and power user tools
+# ═══════════════════════════════════════════════════════════
+tools:
+  winget:
+    # System Utilities via winget (Microsoft Store)
+    # - Microsoft.PowerToys
+    # - 9N0DX20HK701  # Windows Terminal
+
+  choco:
+    # Package Managers & System Tools
+    - wingetui  # Universal package manager GUI
+
+    # System Utilities
+    # - sysinternals
+    # - autoruns
+    # - procexp
+    # - procmon
+    
+    # File Management
+    # - 7zip.install
+    # - wiztree
+    # - everything
+    # - totalcommander
+    # - doublecmd
+    
+    # Network Tools
+    # - wireshark
+    # - putty
+    # - winscp
+    # - nmap
+    # - tcpview
+    
+    # Development Utilities
+    # - git.install
+    # - curl
+    # - wget
+    # - grep
+    # - jq
+    # - sed
+    
+    # Remote Desktop & Access
+    # - anydesk
+    # - teamviewer
+    # - rustdesk
+    
+    # Monitoring & Analysis
+    - cpu-z
+    - gpu-z
+    # - hwinfo
+
+# ═══════════════════════════════════════════════════════════
+# POWERSHELL PROFILE - PowerShell tools and terminal setup
+# ═══════════════════════════════════════════════════════════
+powershell:
+  winget:
+    # Terminal & Shell (winget for latest versions)
+    # - Microsoft.WindowsTerminal
+    # - Microsoft.PowerShell
+
+  choco:
+    # Terminal & Shell
+    - microsoft-windows-terminal
+    - powershell-core
+    - oh-my-posh
+    - nerd-fonts-cascadiacode
