@@ -225,15 +225,15 @@ function Start-CustomInstallation {
     Write-ColorOutput "`nCustom Package Installation" -Type Header
     Write-ColorOutput "Enter package names separated by commas (or type 'list' to see available packages)" -Type Info
     
-    $input = Read-Host "Packages"
+    $pkgInput = Read-Host "Packages"
     
-    if ($input -eq 'list') {
+    if ($pkgInput -eq 'list') {
         Write-ColorOutput "`nOpening Chocolatey package search in browser..." -Type Info
         Start-Process "https://community.chocolatey.org/packages"
         return
     }
     
-    $packages = $input -split ',' | ForEach-Object { $_.Trim() }
+    $packages = $pkgInput -split ',' | ForEach-Object { $_.Trim() }
     
     if ($packages.Count -gt 0) {
         Install-Packages -Packages $packages -ProfileName "Custom"
@@ -542,10 +542,7 @@ try {
                     }
                 }
             }
-                    }
-                }
-            }
-            
+
             if ($allPackages.Count -gt 0) {
                 # Remove duplicates
                 $uniquePackages = $allPackages | Select-Object -Unique

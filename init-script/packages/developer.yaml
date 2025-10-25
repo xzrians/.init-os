@@ -3,9 +3,7 @@
 packages:
   ides_and_editors:
     - vscode
-    - pycharm-community
-    - intellijidea-community
-    - androidstudio
+
   
   version_control:
     - git.install
@@ -13,30 +11,17 @@ packages:
     - gitkraken
   
   development_tools:
-    - nodejs-lts
-    - python
-    - dotnet-sdk
-    - jdk11
+
   
   databases:
-    - postgresql
-    - mongodb
-    - redis
+
   
   containers_and_vm:
     - docker-desktop
-    - virtualbox
   
   api_and_testing:
-    - postman
-    - insomnia-rest-api-client
   
   build_tools:
-    - maven
-    - gradle
   
   other_dev_tools:
-    - curl
-    - wget
-    - fiddler
-    - wireshark
+

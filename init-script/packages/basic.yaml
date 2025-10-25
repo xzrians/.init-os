@@ -3,11 +3,9 @@
 packages:
   browsers:
     - googlechrome
-    - firefox
-  
+
   communication:
     - discord
-    - zoom
   
   media:
     - vlc
@@ -24,5 +22,3 @@ packages:
     - bitwarden
   
   cloud_storage:
-    - dropbox
-    - google-drive-file-stream
