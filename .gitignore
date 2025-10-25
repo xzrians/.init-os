@@ -4,6 +4,9 @@
 # Windows Terminal backups
 settings.json.backup_*
 
+# Installation database (local tracking)
+init-script/installed-packages.json
+
 # Local configuration
 config.local.ps1
 secrets.ps1

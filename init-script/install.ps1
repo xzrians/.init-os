@@ -85,10 +85,12 @@ function Install-Packages {
         return
     }
     
-    Write-ColorOutput "Packages to install: $($Packages.Count)" -Type Info
+    # Load installation history
+    $installedPackages = Get-InstalledPackagesDB
     
-    $successCount = 0
-    $failCount = 0
+    # Filter out already installed packages
+    $packagesToInstall = @()
+    $skippedCount = 0
     
     foreach ($package in $Packages) {
         # Skip empty package names
@@ -96,6 +98,30 @@ function Install-Packages {
             continue
         }
         
+        if ($installedPackages.ContainsKey($package)) {
+            $installDate = $installedPackages[$package].InstallDate
+            Write-ColorOutput "⊳ Skipping $package (already installed on $installDate)" -Type Info
+            $skippedCount++
+        } else {
+            $packagesToInstall += $package
+        }
+    }
+    
+    if ($skippedCount -gt 0) {
+        Write-ColorOutput "`n$skippedCount package(s) already installed (skipped)" -Type Success
+    }
+    
+    if ($packagesToInstall.Count -eq 0) {
+        Write-ColorOutput "`nAll packages are already installed! ✓" -Type Success
+        return
+    }
+    
+    Write-ColorOutput "`nPackages to install: $($packagesToInstall.Count)" -Type Info
+    
+    $successCount = 0
+    $failCount = 0
+    
+    foreach ($package in $packagesToInstall) {
         Write-ColorOutput "`nInstalling: $package" -Type Info
         
         try {
@@ -104,6 +130,9 @@ function Install-Packages {
             if ($LASTEXITCODE -eq 0) {
                 Write-ColorOutput "✓ $package installed successfully" -Type Success
                 $successCount++
+                
+                # Add to installation database
+                Add-PackageToInstalledDB -PackageName $package -ProfileName $ProfileName
             } else {
                 Write-ColorOutput "✗ $package installation failed" -Type Warning
                 $failCount++
@@ -118,7 +147,74 @@ function Install-Packages {
     Write-ColorOutput "Installation Summary:" -Type Header
     Write-ColorOutput "Successful: $successCount" -Type Success
     Write-ColorOutput "Failed: $failCount" -Type $(if ($failCount -eq 0) { 'Success' } else { 'Warning' })
+    if ($skippedCount -gt 0) {
+        Write-ColorOutput "Skipped: $skippedCount (already installed)" -Type Info
+    }
     Write-ColorOutput "═══════════════════════════════════`n" -Type Header
+}
+
+function Get-InstalledPackagesDB {
+    $scriptPath = Split-Path -Parent $MyInvocation.PSCommandPath
+    $dbPath = Join-Path -Path $scriptPath -ChildPath "installed-packages.json"
+    
+    if (-not (Test-Path $dbPath)) {
+        return @{}
+    }
+    
+    try {
+        $jsonContent = Get-Content -Path $dbPath -Raw -ErrorAction Stop
+        $dbData = $jsonContent | ConvertFrom-Json
+        
+        # Convert to hashtable for faster lookups
+        $installedPackages = @{}
+        foreach ($property in $dbData.PSObject.Properties) {
+            $installedPackages[$property.Name] = $property.Value
+        }
+        
+        return $installedPackages
+    } catch {
+        Write-ColorOutput "⚠ Warning: Could not load installation database" -Type Warning
+        return @{}
+    }
+}
+
+function Add-PackageToInstalledDB {
+    param(
+        [string]$PackageName,
+        [string]$ProfileName
+    )
+    
+    $scriptPath = Split-Path -Parent $MyInvocation.PSCommandPath
+    $dbPath = Join-Path -Path $scriptPath -ChildPath "installed-packages.json"
+    
+    # Load existing database
+    $installedPackages = Get-InstalledPackagesDB
+    
+    # Add or update package entry
+    $installedPackages[$PackageName] = @{
+        InstallDate = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+        Profile = $ProfileName
+        Version = "latest"
+    }
+    
+    # Save to file
+    try {
+        $installedPackages | ConvertTo-Json -Depth 3 | Set-Content -Path $dbPath -Encoding UTF8
+    } catch {
+        Write-ColorOutput "⚠ Warning: Could not save to installation database" -Type Warning
+    }
+}
+
+function Clear-InstalledPackagesDB {
+    $scriptPath = Split-Path -Parent $MyInvocation.PSCommandPath
+    $dbPath = Join-Path -Path $scriptPath -ChildPath "installed-packages.json"
+    
+    if (Test-Path $dbPath) {
+        Remove-Item -Path $dbPath -Force
+        Write-ColorOutput "✓ Installation database cleared" -Type Success
+    } else {
+        Write-ColorOutput "⚠ No installation database found" -Type Warning
+    }
 }
 
 function Get-PackagesFromFile {
@@ -256,10 +352,12 @@ function Show-Menu {
     # Static menu options
     $customOption = $menuNumber
     $profileOption = $menuNumber + 1
-    $exitOption = $menuNumber + 2
+    $historyOption = $menuNumber + 2
+    $exitOption = $menuNumber + 3
     
     Write-Host ("  {0}. {1,-15} - {2}" -f $customOption, "Custom", "Choose packages manually") -ForegroundColor Magenta
     Write-Host ("  {0}. {1,-15} - {2}" -f $profileOption, "Configure Profile", "Setup Oh-My-Posh, aliases, and functions") -ForegroundColor DarkCyan
+    Write-Host ("  {0}. {1,-15} - {2}" -f $historyOption, "Install History", "View/clear installation history") -ForegroundColor Gray
     Write-Host ("  {0}. {1,-15} - {2}" -f $exitOption, "Exit", "Exit the installer") -ForegroundColor Red
     Write-Host ""
     Write-ColorOutput "TIP: You can select multiple profile numbers (e.g., 1,3,5 for multiple profiles)" -Type Info
@@ -267,6 +365,51 @@ function Show-Menu {
     
     $choice = Read-Host "Enter your choice (1-$exitOption or comma-separated)"
     return $choice
+}
+
+function Show-InstallHistory {
+    Write-ColorOutput "`n═══════════════════════════════════" -Type Header
+    Write-ColorOutput "Installation History" -Type Header
+    Write-ColorOutput "═══════════════════════════════════" -Type Header
+    
+    $installedPackages = Get-InstalledPackagesDB
+    
+    if ($installedPackages.Count -eq 0) {
+        Write-ColorOutput "`nNo packages have been installed yet." -Type Info
+        return
+    }
+    
+    Write-ColorOutput "`nTotal packages tracked: $($installedPackages.Count)" -Type Success
+    Write-Host ""
+    
+    # Group by profile
+    $byProfile = @{}
+    foreach ($pkg in $installedPackages.GetEnumerator()) {
+        $profile = $pkg.Value.Profile
+        if (-not $byProfile.ContainsKey($profile)) {
+            $byProfile[$profile] = @()
+        }
+        $byProfile[$profile] += @{
+            Name = $pkg.Key
+            Date = $pkg.Value.InstallDate
+        }
+    }
+    
+    # Display grouped by profile
+    foreach ($profile in ($byProfile.Keys | Sort-Object)) {
+        Write-ColorOutput "`n$profile Profile:" -Type Header
+        $packages = $byProfile[$profile] | Sort-Object Name
+        foreach ($pkg in $packages) {
+            Write-Host ("  • {0,-30} (installed: {1})" -f $pkg.Name, $pkg.Date) -ForegroundColor Cyan
+        }
+    }
+    
+    Write-Host "`n"
+    $clearChoice = Read-Host "Would you like to clear the installation history? (y/n)"
+    if ($clearChoice -eq 'y' -or $clearChoice -eq 'Y') {
+        Clear-InstalledPackagesDB
+        Write-ColorOutput "Next installation will reinstall all packages." -Type Info
+    }
 }
 
 function Start-CustomInstallation {
@@ -551,7 +694,8 @@ try {
     $profileCount = $availableProfiles.Count
     $customOption = $profileCount + 1
     $profileConfigOption = $profileCount + 2
-    $exitOption = $profileCount + 3
+    $historyOption = $profileCount + 3
+    $exitOption = $profileCount + 4
     
     # Main menu loop
     do {
@@ -579,6 +723,9 @@ try {
                 }
                 elseif ($choiceNum -eq $profileConfigOption) {
                     Write-ColorOutput "`nPowerShell profile configuration cannot be combined with other options." -Type Warning
+                }
+                elseif ($choiceNum -eq $historyOption) {
+                    Write-ColorOutput "`nInstall history cannot be combined with other options." -Type Warning
                 }
                 elseif ($choiceNum -eq $exitOption) {
                     Write-ColorOutput "`nExiting installer. Goodbye!" -Type Info
@@ -612,6 +759,9 @@ try {
             }
             elseif ($choiceNum -eq $profileConfigOption) {
                 Update-PowerShellProfile
+            }
+            elseif ($choiceNum -eq $historyOption) {
+                Show-InstallHistory
             }
             elseif ($choiceNum -eq $exitOption) {
                 Write-ColorOutput "`nExiting installer. Goodbye!" -Type Info
