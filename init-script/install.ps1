@@ -178,46 +178,93 @@ function Get-PackagesFromFile {
     return $packages
 }
 
-function Get-BasicPackages {
-    return Get-PackagesFromFile -FileName "basic.yaml"
+function Get-ProfilePackages {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$ProfileName,
+        
+        [switch]$IncludeBasic
+    )
+    
+    $packages = @()
+    
+    # Include basic packages if requested (default for most profiles except basic itself)
+    if ($IncludeBasic) {
+        $packages += Get-PackagesFromFile -FileName "basic.yaml"
+    }
+    
+    # Add profile-specific packages
+    $profileFile = "$ProfileName.yaml"
+    $packages += Get-PackagesFromFile -FileName $profileFile
+    
+    return $packages
 }
 
-function Get-DeveloperPackages {
-    $basicPackages = Get-BasicPackages
-    $devPackages = Get-PackagesFromFile -FileName "developer.yaml"
+function Get-AvailableProfiles {
+    $scriptPath = Split-Path -Parent $MyInvocation.PSCommandPath
+    $packagesFolder = Join-Path -Path $scriptPath -ChildPath "packages"
     
-    return $basicPackages + $devPackages
-}
-
-function Get-GamingPackages {
-    $basicPackages = Get-BasicPackages
-    $gamingPackages = Get-PackagesFromFile -FileName "gaming.yaml"
+    # Get all YAML files except modules, template, and profile-config
+    $profileFiles = Get-ChildItem -Path $packagesFolder -Filter "*.yaml" | 
+        Where-Object { 
+            $_.Name -ne 'modules.yaml' -and 
+            $_.Name -ne 'template.yaml' 
+        } | 
+        Sort-Object Name
     
-    return $basicPackages + $gamingPackages
-}
-
-function Get-PowerShellPackages {
-    $basicPackages = Get-BasicPackages
-    $pwshPackages = Get-PackagesFromFile -FileName "powershell.yaml"
+    $profiles = @()
+    foreach ($file in $profileFiles) {
+        $profileName = $file.BaseName
+        $profiles += @{
+            Name = $profileName
+            DisplayName = (Get-Culture).TextInfo.ToTitleCase($profileName)
+            File = $file.Name
+        }
+    }
     
-    return $basicPackages + $pwshPackages
+    return $profiles
 }
 
 function Show-Menu {
+    $profiles = Get-AvailableProfiles
+    $menuColors = @('Yellow', 'Cyan', 'Green', 'Blue', 'White', 'Magenta', 'DarkYellow', 'DarkCyan', 'DarkGreen')
+    
     Write-ColorOutput "Select Installation Profile(s):" -Type Header
     Write-Host ""
-    Write-Host "  1. Basic            - Essential applications for everyday use" -ForegroundColor Yellow
-    Write-Host "  2. Developer        - Programming tools, IDEs, and development environment" -ForegroundColor Cyan
-    Write-Host "  3. Gaming           - Gaming platforms and related tools" -ForegroundColor Green
-    Write-Host "  4. PowerShell       - PowerShell tools and terminal setup" -ForegroundColor Blue
-    Write-Host "  5. Custom           - Choose packages manually" -ForegroundColor Magenta
-    Write-Host "  6. Configure PowerShell Profile - Setup Oh-My-Posh, aliases, and functions" -ForegroundColor DarkCyan
-    Write-Host "  7. Exit             - Exit the installer" -ForegroundColor Red
+    
+    # Dynamic profile menu
+    $menuNumber = 1
+    foreach ($profile in $profiles) {
+        $colorIndex = ($menuNumber - 1) % $menuColors.Count
+        $color = $menuColors[$colorIndex]
+        
+        # Add description based on profile name
+        $description = switch ($profile.Name) {
+            'basic' { "Essential applications for everyday use" }
+            'developer' { "Programming tools, IDEs, and development environment" }
+            'gaming' { "Gaming platforms and related tools" }
+            'powershell' { "PowerShell tools and terminal setup" }
+            'social' { "WhatsApp, Telegram, and social media apps" }
+            default { "$($profile.DisplayName) packages" }
+        }
+        
+        Write-Host ("  {0}. {1,-15} - {2}" -f $menuNumber, $profile.DisplayName, $description) -ForegroundColor $color
+        $menuNumber++
+    }
+    
+    # Static menu options
+    $customOption = $menuNumber
+    $profileOption = $menuNumber + 1
+    $exitOption = $menuNumber + 2
+    
+    Write-Host ("  {0}. {1,-15} - {2}" -f $customOption, "Custom", "Choose packages manually") -ForegroundColor Magenta
+    Write-Host ("  {0}. {1,-15} - {2}" -f $profileOption, "Configure Profile", "Setup Oh-My-Posh, aliases, and functions") -ForegroundColor DarkCyan
+    Write-Host ("  {0}. {1,-15} - {2}" -f $exitOption, "Exit", "Exit the installer") -ForegroundColor Red
     Write-Host ""
-    Write-ColorOutput "TIP: You can select multiple options (e.g., 1,3 for Basic + Gaming)" -Type Info
+    Write-ColorOutput "TIP: You can select multiple profile numbers (e.g., 1,3,5 for multiple profiles)" -Type Info
     Write-Host ""
     
-    $choice = Read-Host "Enter your choice (1-7 or comma-separated like 1,2,4)"
+    $choice = Read-Host "Enter your choice (1-$exitOption or comma-separated)"
     return $choice
 }
 
@@ -498,6 +545,13 @@ try {
     # Install Chocolatey if not present
     Install-Chocolatey
     
+    # Get available profiles for dynamic menu handling
+    $availableProfiles = Get-AvailableProfiles
+    $profileCount = $availableProfiles.Count
+    $customOption = $profileCount + 1
+    $profileConfigOption = $profileCount + 2
+    $exitOption = $profileCount + 3
+    
     # Main menu loop
     do {
         Show-Banner
@@ -510,36 +564,27 @@ try {
             $profileNames = @()
             
             foreach ($selectedChoice in $choices) {
-                switch ($selectedChoice) {
-                    '1' {
-                        $allPackages += Get-BasicPackages
-                        $profileNames += "Basic"
-                    }
-                    '2' {
-                        $allPackages += Get-DeveloperPackages
-                        $profileNames += "Developer"
-                    }
-                    '3' {
-                        $allPackages += Get-GamingPackages
-                        $profileNames += "Gaming"
-                    }
-                    '4' {
-                        $allPackages += Get-PowerShellPackages
-                        $profileNames += "PowerShell"
-                    }
-                    '5' {
-                        Write-ColorOutput "`nCustom installation cannot be combined with other profiles." -Type Warning
-                    }
-                    '6' {
-                        Write-ColorOutput "`nPowerShell profile configuration cannot be combined with other options." -Type Warning
-                    }
-                    '7' {
-                        Write-ColorOutput "`nExiting installer. Goodbye!" -Type Info
-                        exit 0
-                    }
-                    default {
-                        Write-ColorOutput "`nInvalid choice: $selectedChoice" -Type Warning
-                    }
+                $choiceNum = [int]$selectedChoice
+                
+                if ($choiceNum -ge 1 -and $choiceNum -le $profileCount) {
+                    # Profile selection
+                    $profile = $availableProfiles[$choiceNum - 1]
+                    $includeBasic = $profile.Name -ne 'basic'
+                    $allPackages += Get-ProfilePackages -ProfileName $profile.Name -IncludeBasic:$includeBasic
+                    $profileNames += $profile.DisplayName
+                }
+                elseif ($choiceNum -eq $customOption) {
+                    Write-ColorOutput "`nCustom installation cannot be combined with other profiles." -Type Warning
+                }
+                elseif ($choiceNum -eq $profileConfigOption) {
+                    Write-ColorOutput "`nPowerShell profile configuration cannot be combined with other options." -Type Warning
+                }
+                elseif ($choiceNum -eq $exitOption) {
+                    Write-ColorOutput "`nExiting installer. Goodbye!" -Type Info
+                    exit 0
+                }
+                else {
+                    Write-ColorOutput "`nInvalid choice: $selectedChoice" -Type Warning
                 }
             }
 
@@ -552,45 +597,36 @@ try {
         }
         else {
             # Single selection
-            switch ($choice) {
-                '1' {
-                    $packages = Get-BasicPackages
-                    Install-Packages -Packages $packages -ProfileName "Basic"
-                }
-                '2' {
-                    $packages = Get-DeveloperPackages
-                    Install-Packages -Packages $packages -ProfileName "Developer"
-                }
-                '3' {
-                    $packages = Get-GamingPackages
-                    Install-Packages -Packages $packages -ProfileName "Gaming"
-                }
-                '4' {
-                    $packages = Get-PowerShellPackages
-                    Install-Packages -Packages $packages -ProfileName "PowerShell"
-                }
-                '5' {
-                    Start-CustomInstallation
-                }
-                '6' {
-                    Update-PowerShellProfile
-                }
-                '7' {
-                    Write-ColorOutput "`nExiting installer. Goodbye!" -Type Info
-                    exit 0
-                }
-                default {
-                    Write-ColorOutput "`nInvalid choice. Please select 1-7." -Type Warning
-                }
+            $choiceNum = [int]$choice
+            
+            if ($choiceNum -ge 1 -and $choiceNum -le $profileCount) {
+                # Profile selection
+                $profile = $availableProfiles[$choiceNum - 1]
+                $includeBasic = $profile.Name -ne 'basic'
+                $packages = Get-ProfilePackages -ProfileName $profile.Name -IncludeBasic:$includeBasic
+                Install-Packages -Packages $packages -ProfileName $profile.DisplayName
+            }
+            elseif ($choiceNum -eq $customOption) {
+                Start-CustomInstallation
+            }
+            elseif ($choiceNum -eq $profileConfigOption) {
+                Update-PowerShellProfile
+            }
+            elseif ($choiceNum -eq $exitOption) {
+                Write-ColorOutput "`nExiting installer. Goodbye!" -Type Info
+                exit 0
+            }
+            else {
+                Write-ColorOutput "`nInvalid choice. Please select 1-$exitOption." -Type Warning
             }
         }
         
-        if ($choice -ne '7') {
+        if ($choice -ne $exitOption) {
             Write-Host "`n"
             Read-Host "Press Enter to return to main menu"
         }
         
-    } while ($choice -ne '7')
+    } while ($choice -ne $exitOption)
     
 } catch {
     Write-ColorOutput "`n✗ An error occurred: $($_.Exception.Message)" -Type Error
