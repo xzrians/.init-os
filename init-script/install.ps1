@@ -33,7 +33,7 @@ function Show-Banner {
     Write-Host "╔════════════════════════════════════════════════════════════╗" -ForegroundColor $script:Colors.Header
     Write-Host "║                                                            ║" -ForegroundColor $script:Colors.Header
     Write-Host "║          Windows Installation Script Manager              ║" -ForegroundColor $script:Colors.Header
-    Write-Host "║                  Powered by Chocolatey                     ║" -ForegroundColor $script:Colors.Header
+    Write-Host "║            Chocolatey + Winget Support                     ║" -ForegroundColor $script:Colors.Header
     Write-Host "║                                                            ║" -ForegroundColor $script:Colors.Header
     Write-Host "╚════════════════════════════════════════════════════════════╝" -ForegroundColor $script:Colors.Header
     Write-Host ""
@@ -70,9 +70,63 @@ function Install-Chocolatey {
     }
 }
 
+function Install-Winget {
+    Write-ColorOutput "Checking for winget (App Installer) installation..." -Type Info
+    
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        Write-ColorOutput "✓ Winget is already installed" -Type Success
+        $wingetVersion = (winget --version) -replace 'v', ''
+        Write-Host "  Version: $wingetVersion" -ForegroundColor Gray
+    } else {
+        Write-ColorOutput "Installing App Installer (winget) from Microsoft Store..." -Type Warning
+        
+        try {
+            # Install App Installer via winget bootstrap or direct download
+            # Method 1: Try using Add-AppxPackage with Microsoft Store link
+            Write-ColorOutput "Attempting to install via Microsoft Store..." -Type Info
+            
+            # Use ms-windows-store protocol to open App Installer page
+            Start-Process "ms-windows-store://pdp/?ProductId=9NBLGGH4NNS1"
+            
+            Write-ColorOutput "`nPlease complete the installation from Microsoft Store window that opened." -Type Warning
+            Write-ColorOutput "After installation completes, press any key to continue..." -Type Info
+            $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+            
+            # Verify installation
+            if (Get-Command winget -ErrorAction SilentlyContinue) {
+                Write-ColorOutput "✓ Winget installed successfully!" -Type Success
+            } else {
+                Write-ColorOutput "⚠ Winget not detected. You may need to restart your terminal." -Type Warning
+                Write-ColorOutput "  Or install manually from: https://apps.microsoft.com/detail/9NBLGGH4NNS1" -Type Info
+            }
+        } catch {
+            Write-ColorOutput "⚠ Could not auto-install winget: $($_.Exception.Message)" -Type Warning
+            Write-ColorOutput "  Please install App Installer manually from Microsoft Store:" -Type Info
+            Write-ColorOutput "  https://apps.microsoft.com/detail/9NBLGGH4NNS1" -Type Info
+        }
+    }
+}
+
+function Initialize-PackageManagers {
+    Write-ColorOutput "`n═══════════════════════════════════" -Type Header
+    Write-ColorOutput "Package Manager Setup" -Type Header
+    Write-ColorOutput "═══════════════════════════════════`n" -Type Header
+    
+    # Install Chocolatey
+    Install-Chocolatey
+    Write-Host ""
+    
+    # Install Winget
+    Install-Winget
+    
+    Write-ColorOutput "`n✓ Package managers ready!" -Type Success
+    Start-Sleep -Seconds 2
+}
+
+
 function Install-Packages {
     param(
-        [string[]]$Packages,
+        [array]$Packages,
         [string]$ProfileName
     )
     
@@ -96,33 +150,162 @@ function Install-Packages {
         }
     }
     
+    # Get list of installed packages from winget
+    $wingetList = winget list --accept-source-agreements 2>&1 | Out-String
+    $installedWingetPackages = @{}
+    
+    # Parse winget output (format is more complex, look for installed packages)
+    $wingetLines = $wingetList -split "`n"
+    foreach ($line in $wingetLines) {
+        # Match package ID patterns (skip header lines)
+        if ($line -match '^\s*(.+?)\s+(.+?)\s+([\d\.]+)') {
+            $pkgId = $matches[2].Trim()
+            $installedWingetPackages[$pkgId] = $matches[3].Trim()
+        }
+    }
+    
     # Load installation history database
     $installedPackages = Get-InstalledPackagesDB
     
-    # Filter out already installed packages
+    # Filter out already installed packages and detect migrations
     $packagesToInstall = @()
+    $packagesToMigrate = @()
     $skippedCount = 0
     
-    foreach ($package in $Packages) {
+    foreach ($pkg in $Packages) {
+        # Handle both string and hashtable package formats
+        $packageName = if ($pkg -is [hashtable]) { $pkg.package } else { $pkg }
+        $packageManager = if ($pkg -is [hashtable]) { $pkg.manager } else { 'choco' }
+        $displayName = if ($pkg -is [hashtable] -and $pkg.name) { $pkg.name } else { $packageName }
+        
         # Skip empty package names
-        if ([string]::IsNullOrWhiteSpace($package)) {
+        if ([string]::IsNullOrWhiteSpace($packageName)) {
             continue
         }
         
-        # Check if package is installed via Chocolatey
-        if ($installedChocoPackages.ContainsKey($package)) {
-            $version = $installedChocoPackages[$package]
-            Write-ColorOutput "⊳ Skipping $package (v$version already installed)" -Type Info
+        # Check if package is installed with DIFFERENT manager (migration needed)
+        $needsMigration = $false
+        $oldManager = $null
+        $oldVersion = $null
+        
+        if ($packageManager -eq 'winget') {
+            # Want winget, check if installed via choco
+            if ($installedChocoPackages.ContainsKey($packageName)) {
+                $needsMigration = $true
+                $oldManager = 'choco'
+                $oldVersion = $installedChocoPackages[$packageName]
+            }
+        } else {
+            # Want choco, check if installed via winget
+            if ($installedWingetPackages.ContainsKey($packageName)) {
+                $needsMigration = $true
+                $oldManager = 'winget'
+                $oldVersion = $installedWingetPackages[$packageName]
+            }
+        }
+        
+        if ($needsMigration) {
+            $packagesToMigrate += @{
+                package = $packageName
+                manager = $packageManager
+                oldManager = $oldManager
+                name = $displayName
+                oldVersion = $oldVersion
+            }
+            continue
+        }
+        
+        # Check if package is installed based on manager type
+        $isInstalled = $false
+        $version = "unknown"
+        
+        if ($packageManager -eq 'winget') {
+            if ($installedWingetPackages.ContainsKey($packageName)) {
+                $isInstalled = $true
+                $version = $installedWingetPackages[$packageName]
+            }
+        } else {
+            # Default to chocolatey
+            if ($installedChocoPackages.ContainsKey($packageName)) {
+                $isInstalled = $true
+                $version = $installedChocoPackages[$packageName]
+            }
+        }
+        
+        if ($isInstalled) {
+            Write-ColorOutput "⊳ Skipping $displayName (v$version already installed via $packageManager)" -Type Info
             $skippedCount++
             
             # Update database with actual installed package
-            if (-not $installedPackages.ContainsKey($package)) {
-                Add-PackageToInstalledDB -PackageName $package -ProfileName $ProfileName -Version $version
+            $dbKey = "$packageManager`:$packageName"
+            if (-not $installedPackages.ContainsKey($dbKey)) {
+                Add-PackageToInstalledDB -PackageName $dbKey -ProfileName $ProfileName -Version $version
             }
         } else {
-            $packagesToInstall += $package
+            $packagesToInstall += @{
+                package = $packageName
+                manager = $packageManager
+                name = $displayName
+            }
         }
     }
+    
+    # Handle package migrations
+    if ($packagesToMigrate.Count -gt 0) {
+        Write-ColorOutput "`n⚠ Detected $($packagesToMigrate.Count) package(s) that need migration:" -Type Warning
+        foreach ($pkg in $packagesToMigrate) {
+            Write-Host "  • $($pkg.name): " -NoNewline -ForegroundColor Yellow
+            Write-Host "$($pkg.oldManager) → $($pkg.manager)" -ForegroundColor Cyan
+        }
+        
+        Write-Host "`nMigration will:" -ForegroundColor White
+        Write-Host "  1. Uninstall from $($packagesToMigrate[0].oldManager)" -ForegroundColor Gray
+        Write-Host "  2. Install via $($packagesToMigrate[0].manager)" -ForegroundColor Gray
+        Write-Host "  3. Preserve your data/settings" -ForegroundColor Gray
+        
+        $confirm = Read-Host "`nProceed with migration? (Y/N)"
+        
+        if ($confirm -eq 'Y' -or $confirm -eq 'y') {
+            foreach ($pkg in $packagesToMigrate) {
+                Write-ColorOutput "`nMigrating $($pkg.name) from $($pkg.oldManager) to $($pkg.manager)..." -Type Info
+                
+                # Uninstall from old manager
+                try {
+                    if ($pkg.oldManager -eq 'choco') {
+                        Write-ColorOutput "  Uninstalling from Chocolatey..." -Type Info
+                        choco uninstall $pkg.package -y
+                        
+                        # Remove old database entry
+                        $oldDbKey = "choco:$($pkg.package)"
+                        Remove-PackageFromInstalledDB -PackageName $oldDbKey
+                    } else {
+                        Write-ColorOutput "  Uninstalling from Winget..." -Type Info
+                        winget uninstall --id $pkg.package --silent
+                        
+                        # Remove old database entry
+                        $oldDbKey = "winget:$($pkg.package)"
+                        Remove-PackageFromInstalledDB -PackageName $oldDbKey
+                    }
+                    
+                    Write-ColorOutput "  ✓ Uninstalled from $($pkg.oldManager)" -Type Success
+                    
+                    # Add to install queue
+                    $packagesToInstall += @{
+                        package = $pkg.package
+                        manager = $pkg.manager
+                        name = $pkg.name
+                    }
+                    
+                } catch {
+                    Write-ColorOutput "  ⚠ Failed to uninstall: $($_.Exception.Message)" -Type Warning
+                    Write-ColorOutput "  You may need to uninstall manually" -Type Info
+                }
+            }
+        } else {
+            Write-ColorOutput "Migration cancelled. Existing installations will remain." -Type Warning
+        }
+    }
+
     
     if ($skippedCount -gt 0) {
         Write-ColorOutput "`n$skippedCount package(s) already installed (skipped)" -Type Success
@@ -138,31 +321,61 @@ function Install-Packages {
     $successCount = 0
     $failCount = 0
     
-    foreach ($package in $packagesToInstall) {
-        Write-ColorOutput "`nInstalling: $package" -Type Info
+    foreach ($pkg in $packagesToInstall) {
+        $packageName = $pkg.package
+        $packageManager = $pkg.manager
+        $displayName = $pkg.name
+        
+        Write-ColorOutput "`nInstalling: $displayName (via $packageManager)" -Type Info
         
         try {
-            choco install $package -y --ignore-checksums
-            
-            if ($LASTEXITCODE -eq 0) {
-                Write-ColorOutput "✓ $package installed successfully" -Type Success
-                $successCount++
+            if ($packageManager -eq 'winget') {
+                # Install via winget
+                winget install --id $packageName --accept-source-agreements --accept-package-agreements --silent
                 
-                # Get installed version
-                $chocoInfo = choco list $package --local-only --limit-output --exact
-                $version = "unknown"
-                if ($chocoInfo -match '^.+?\|(.+)$') {
-                    $version = $matches[1]
+                if ($LASTEXITCODE -eq 0) {
+                    Write-ColorOutput "✓ $displayName installed successfully" -Type Success
+                    $successCount++
+                    
+                    # Get installed version from winget
+                    $wingetInfo = winget list --id $packageName --accept-source-agreements 2>&1 | Out-String
+                    $version = "unknown"
+                    if ($wingetInfo -match '^\s*.+?\s+.+?\s+([\d\.]+)') {
+                        $version = $matches[1]
+                    }
+                    
+                    # Add to installation database
+                    $dbKey = "winget:$packageName"
+                    Add-PackageToInstalledDB -PackageName $dbKey -ProfileName $ProfileName -Version $version
+                } else {
+                    Write-ColorOutput "✗ $displayName installation failed" -Type Warning
+                    $failCount++
                 }
-                
-                # Add to installation database
-                Add-PackageToInstalledDB -PackageName $package -ProfileName $ProfileName -Version $version
             } else {
-                Write-ColorOutput "✗ $package installation failed" -Type Warning
-                $failCount++
+                # Install via chocolatey (default)
+                choco install $packageName -y --ignore-checksums
+                
+                if ($LASTEXITCODE -eq 0) {
+                    Write-ColorOutput "✓ $displayName installed successfully" -Type Success
+                    $successCount++
+                    
+                    # Get installed version
+                    $chocoInfo = choco list $packageName --local-only --limit-output --exact
+                    $version = "unknown"
+                    if ($chocoInfo -match '^.+?\|(.+)$') {
+                        $version = $matches[1]
+                    }
+                    
+                    # Add to installation database
+                    $dbKey = "choco:$packageName"
+                    Add-PackageToInstalledDB -PackageName $dbKey -ProfileName $ProfileName -Version $version
+                } else {
+                    Write-ColorOutput "✗ $displayName installation failed" -Type Warning
+                    $failCount++
+                }
             }
         } catch {
-            Write-ColorOutput "✗ Error installing $package : $($_.Exception.Message)" -Type Error
+            Write-ColorOutput "✗ Error installing $displayName : $($_.Exception.Message)" -Type Error
             $failCount++
         }
     }
@@ -242,10 +455,124 @@ function Clear-InstalledPackagesDB {
     }
 }
 
+function Remove-PackageFromInstalledDB {
+    param(
+        [string]$PackageName
+    )
+    
+    $scriptPath = Split-Path -Parent $MyInvocation.PSCommandPath
+    $dbPath = Join-Path -Path $scriptPath -ChildPath "installed-packages.json"
+    
+    if (-not (Test-Path $dbPath)) {
+        return
+    }
+    
+    try {
+        $installedPackages = Get-InstalledPackagesDB
+        
+        if ($installedPackages.ContainsKey($PackageName)) {
+            $installedPackages.Remove($PackageName)
+            $installedPackages | ConvertTo-Json -Depth 3 | Set-Content -Path $dbPath -Encoding UTF8
+        }
+    } catch {
+        Write-ColorOutput "⚠ Warning: Could not remove from installation database" -Type Warning
+    }
+}
+
+function Update-AllPackages {
+    Write-ColorOutput "`n═══════════════════════════════════" -Type Header
+    Write-ColorOutput "Upgrade All Packages" -Type Header
+    Write-ColorOutput "═══════════════════════════════════" -Type Header
+    
+    Write-ColorOutput "`nChecking for outdated packages..." -Type Info
+    
+    # Get list of outdated packages
+    $outdatedOutput = choco outdated --limit-output 2>&1
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-ColorOutput "⚠ Error checking for updates" -Type Warning
+        return
+    }
+    
+    # Parse outdated packages (format: packagename|currentversion|availableversion|pinned)
+    $outdatedPackages = @()
+    foreach ($line in $outdatedOutput) {
+        if ($line -match '^(.+?)\|(.+?)\|(.+?)\|') {
+            $outdatedPackages += [PSCustomObject]@{
+                Name = $matches[1]
+                Current = $matches[2]
+                Available = $matches[3]
+            }
+        }
+    }
+    
+    if ($outdatedPackages.Count -eq 0) {
+        Write-ColorOutput "`n✓ All packages are up to date!" -Type Success
+        return
+    }
+    
+    Write-ColorOutput "`nFound $($outdatedPackages.Count) package(s) with available updates:" -Type Info
+    Write-Host ""
+    
+    foreach ($pkg in $outdatedPackages) {
+        Write-Host "  • " -NoNewline -ForegroundColor Yellow
+        Write-Host "$($pkg.Name) " -NoNewline -ForegroundColor White
+        Write-Host "v$($pkg.Current) " -NoNewline -ForegroundColor DarkGray
+        Write-Host "→ " -NoNewline -ForegroundColor Yellow
+        Write-Host "v$($pkg.Available)" -ForegroundColor Green
+    }
+    
+    Write-Host ""
+    $confirm = Read-Host "Upgrade all packages? (Y/N)"
+    
+    if ($confirm -ne 'Y' -and $confirm -ne 'y') {
+        Write-ColorOutput "Upgrade cancelled" -Type Warning
+        return
+    }
+    
+    Write-ColorOutput "`nUpgrading all packages..." -Type Info
+    
+    # Upgrade all packages
+    choco upgrade all -y
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-ColorOutput "`n✓ All packages upgraded successfully!" -Type Success
+        
+        # Update database with new versions
+        $installedPackages = Get-InstalledPackagesDB
+        $chocoList = choco list --local-only --limit-output
+        
+        foreach ($line in $chocoList) {
+            if ($line -match '^(.+?)\|(.+)$') {
+                $pkgName = $matches[1]
+                $pkgVersion = $matches[2]
+                
+                if ($installedPackages.ContainsKey($pkgName)) {
+                    $installedPackages[$pkgName].Version = $pkgVersion
+                    $installedPackages[$pkgName].LastUpdated = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+                }
+            }
+        }
+        
+        # Save updated database
+        $scriptPath = Split-Path -Parent $MyInvocation.PSCommandPath
+        $dbPath = Join-Path -Path $scriptPath -ChildPath "installed-packages.json"
+        try {
+            $installedPackages | ConvertTo-Json -Depth 3 | Set-Content -Path $dbPath -Encoding UTF8
+            Write-ColorOutput "✓ Database updated with new versions" -Type Success
+        } catch {
+            Write-ColorOutput "⚠ Warning: Could not update database" -Type Warning
+        }
+    } else {
+        Write-ColorOutput "`n⚠ Some packages failed to upgrade" -Type Warning
+    }
+}
+
 function Get-PackagesFromFile {
     param(
         [Parameter(Mandatory=$true)]
-        [string]$FileName
+        [string]$FileName,
+        [string]$ProfileName = $null
     )
     
     $scriptPath = Split-Path -Parent $MyInvocation.PSCommandPath
@@ -270,30 +597,81 @@ function Get-PackagesFromFile {
     
     $packages = @()
     
-    # Simple YAML parser for our package lists
+    # Simplified YAML parser - supports profile sections and winget:/choco: subsections
     $lines = $content -split "`n"
+    $currentManager = 'choco'  # Default manager
+    $currentProfile = $null
+    $inTargetProfile = $false
+    
     foreach ($line in $lines) {
         $trimmed = $line.Trim()
-        # Skip comments, empty lines, and YAML keys
-        if ($trimmed -match '^#' -or $trimmed -eq '' -or $trimmed -eq '---' -or 
-            $trimmed -match '^\w+:$' -or $trimmed -match '^packages:$' -or $trimmed -match '^modules:$') {
+        
+        # Skip comments, empty lines, and document markers
+        if ($trimmed -match '^#' -or $trimmed -eq '' -or $trimmed -eq '---') {
             continue
         }
-        # Extract package names from list items (- packagename)
-        if ($trimmed -match '^\s*-\s+(.+)$') {
+        
+        # Check for profile section (e.g., "basic:", "developer:")
+        if ($trimmed -match '^([a-z_]+):$' -and $trimmed -ne 'winget:' -and $trimmed -ne 'choco:' -and $trimmed -ne 'packages:' -and $trimmed -ne 'modules:') {
+            $currentProfile = $matches[1]
+            
+            # If specific profile requested, only parse that profile
+            if ($ProfileName) {
+                $inTargetProfile = ($currentProfile -eq $ProfileName.ToLower())
+            } else {
+                $inTargetProfile = $true
+            }
+            continue
+        }
+        
+        # If we have a profile filter and we're not in target profile, skip
+        if ($ProfileName -and -not $inTargetProfile) {
+            continue
+        }
+        
+        # Check for manager section headers (indented under profile)
+        if ($trimmed -eq 'winget:') {
+            $currentManager = 'winget'
+            continue
+        }
+        elseif ($trimmed -eq 'choco:') {
+            $currentManager = 'choco'
+            continue
+        }
+        elseif ($trimmed -eq 'packages:' -or $trimmed -eq 'modules:') {
+            # Legacy format - default to choco
+            $currentManager = 'choco'
+            continue
+        }
+        
+        # Extract package names from list items (- packagename or - packagename # comment)
+        if ($trimmed -match '^\s*-\s+([^\s#]+)') {
             $packageName = $matches[1].Trim()
+            
             # Skip empty package names
             if (-not [string]::IsNullOrWhiteSpace($packageName)) {
-                $packages += $packageName
+                $packages += @{
+                    package = $packageName
+                    manager = $currentManager
+                    name = $packageName
+                }
             }
         }
     }
     
     # Notify if no packages found
     if ($packages.Count -eq 0) {
-        Write-ColorOutput "⚠ No packages found in: $FileName (this is OK if intentional)" -Type Warning
+        if ($ProfileName) {
+            Write-ColorOutput "⚠ No packages found for profile: $ProfileName" -Type Warning
+        } else {
+            Write-ColorOutput "⚠ No packages found in: $FileName" -Type Warning
+        }
     } else {
-        Write-ColorOutput "Found $($packages.Count) package(s) in $FileName" -Type Success
+        if ($ProfileName) {
+            Write-ColorOutput "Found $($packages.Count) package(s) for profile: $ProfileName" -Type Success
+        } else {
+            Write-ColorOutput "Found $($packages.Count) package(s) in $FileName" -Type Success
+        }
     }
     
     return $packages
@@ -309,14 +687,29 @@ function Get-ProfilePackages {
     
     $packages = @()
     
-    # Include basic packages if requested (default for most profiles except basic itself)
-    if ($IncludeBasic) {
-        $packages += Get-PackagesFromFile -FileName "basic.yaml"
-    }
+    # Use unified packages.yaml if it exists, otherwise fall back to individual files
+    $scriptPath = Split-Path -Parent $MyInvocation.PSCommandPath
+    $packagesFolder = Join-Path -Path $scriptPath -ChildPath "packages"
+    $unifiedFile = Join-Path -Path $packagesFolder -ChildPath "packages.yaml"
     
-    # Add profile-specific packages
-    $profileFile = "$ProfileName.yaml"
-    $packages += Get-PackagesFromFile -FileName $profileFile
+    if (Test-Path $unifiedFile) {
+        # Use unified file
+        if ($IncludeBasic -and $ProfileName.ToLower() -ne 'basic') {
+            # Include basic packages
+            $packages += Get-PackagesFromFile -FileName "packages.yaml" -ProfileName "basic"
+        }
+        
+        # Add profile-specific packages
+        $packages += Get-PackagesFromFile -FileName "packages.yaml" -ProfileName $ProfileName
+    } else {
+        # Fall back to individual files (backward compatibility)
+        if ($IncludeBasic) {
+            $packages += Get-PackagesFromFile -FileName "basic.yaml"
+        }
+        
+        $profileFile = "$ProfileName.yaml"
+        $packages += Get-PackagesFromFile -FileName $profileFile
+    }
     
     return $packages
 }
@@ -324,26 +717,51 @@ function Get-ProfilePackages {
 function Get-AvailableProfiles {
     $scriptPath = Split-Path -Parent $MyInvocation.PSCommandPath
     $packagesFolder = Join-Path -Path $scriptPath -ChildPath "packages"
+    $unifiedFile = Join-Path -Path $packagesFolder -ChildPath "packages.yaml"
     
-    # Get all YAML files except modules, template, and profile-config
-    $profileFiles = Get-ChildItem -Path $packagesFolder -Filter "*.yaml" | 
-        Where-Object { 
-            $_.Name -ne 'modules.yaml' -and 
-            $_.Name -ne 'template.yaml' 
-        } | 
-        Sort-Object Name
-    
-    $profiles = @()
-    foreach ($file in $profileFiles) {
-        $profileName = $file.BaseName
-        $profiles += @{
-            Name = $profileName
-            DisplayName = (Get-Culture).TextInfo.ToTitleCase($profileName)
-            File = $file.Name
+    # Check if unified packages.yaml exists
+    if (Test-Path $unifiedFile) {
+        # Parse unified file to extract profile names
+        $content = Get-Content -Path $unifiedFile -Raw -ErrorAction SilentlyContinue
+        $lines = $content -split "`n"
+        
+        $profiles = @()
+        foreach ($line in $lines) {
+            $trimmed = $line.Trim()
+            # Match profile sections (e.g., "basic:", "developer:")
+            if ($trimmed -match '^([a-z_]+):$' -and $trimmed -ne 'winget:' -and $trimmed -ne 'choco:' -and $trimmed -ne 'packages:' -and $trimmed -ne 'modules:') {
+                $profileName = $matches[1]
+                $profiles += @{
+                    Name = $profileName
+                    DisplayName = (Get-Culture).TextInfo.ToTitleCase($profileName)
+                    File = "packages.yaml"
+                }
+            }
         }
+        
+        return $profiles
+    } else {
+        # Fall back to individual YAML files (backward compatibility)
+        $profileFiles = Get-ChildItem -Path $packagesFolder -Filter "*.yaml" | 
+            Where-Object { 
+                $_.Name -ne 'modules.yaml' -and 
+                $_.Name -ne 'template.yaml' -and
+                $_.Name -ne 'packages.yaml'
+            } | 
+            Sort-Object Name
+        
+        $profiles = @()
+        foreach ($file in $profileFiles) {
+            $profileName = $file.BaseName
+            $profiles += @{
+                Name = $profileName
+                DisplayName = (Get-Culture).TextInfo.ToTitleCase($profileName)
+                File = $file.Name
+            }
+        }
+        
+        return $profiles
     }
-    
-    return $profiles
 }
 
 function Show-Menu {
